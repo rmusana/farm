@@ -141,3 +141,35 @@ p {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Responsive adjustments: typography, images, containers */
+@media (max-width: 1279px) {
+  html { font-size: 15px; }
+  .page-root { padding: calc(var(--space-5)); }
+}
+
+@media (max-width: 1023px) {
+  html { font-size: 15px; }
+  .page-root { padding: var(--space-4); }
+  /* Ensure charts, images and media scale down nicely */
+  img, svg, canvas, video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 639px) {
+  html { font-size: 14px; }
+  body { min-width: 0; }
+  .page-root { padding: var(--space-3); }
+  .topbar { height: calc(var(--topbar-height) - 8px); }
+  /* Make utility gaps slightly smaller on narrow screens */
+  .u-gap-4 { gap: var(--space-3); }
+  .u-gap-6 { gap: var(--space-4); }
+}
+
+@media (max-width: 479px) {
+  html { font-size: 13px; }
+  .btn { min-width: 0; }
+  .page-header { gap: var(--space-2); }
+}
