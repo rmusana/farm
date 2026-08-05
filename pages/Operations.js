@@ -3,7 +3,7 @@
  */
 import { field, serializeForm, validateRequired } from '../components/Form.js';
 import { renderDataTable } from '../components/DataTable.js';
-import { openModal, closeModal } from '../components/Modal.js';
+import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { formatUGX, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { canWrite } from '../js/auth.js';
@@ -297,6 +297,39 @@ async function apiOrLocal(resource, action, payload) {
   return { success: true, data: {} };
 }
 
+
+function recordId(row, keys) {
+  for (var i = 0; i < keys.length; i++) {
+    var v = row[keys[i]];
+    if (v != null && v !== '') return v;
+  }
+  return null;
+}
+
+async function deleteRecord(resource, id) {
+  if (!id) throw new Error('Missing record id');
+  if (window.RMUSANA_API_URL) {
+    return api.request('/operations', {
+      body: {
+        module: 'operations',
+        resource: resource,
+        action: 'delete',
+        projectId: 'LUK54',
+        id: id
+      }
+    });
+  }
+  // localStorage path
+  var key = resource === 'sales' || resource === 'eggs' ? 'sales' : resource === 'feed' ? 'feed' : resource;
+  var list = localStore(key);
+  var next = list.filter(function (r) {
+    var rid = r.RecordID || r.SaleID || r.EventID || r.PurchaseID || r.NoteID || r.ItemID || r.id;
+    return String(rid) !== String(id);
+  });
+  localStore(key, next);
+  return { success: true };
+}
+
 function feedTotalKg(r) {
   return (
     Number(r.FeedBrandKg || 0) +
@@ -438,6 +471,26 @@ export default {
           }
         ],
         rows: rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['RecordID', 'recordId', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete daily log',
+            message: 'Delete the log for ' + (row.Date || row.date || 'this day') + '? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('daily', id);
+            toastSuccess('Daily log deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No daily logs yet. Click Log Day to add one.'
       });
     } catch (err) {
@@ -595,6 +648,26 @@ export default {
           }
         ],
         rows: rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['EventID', 'eventId', 'RecordID', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete flock event',
+            message: 'Delete this flock event?',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('flock', id);
+            toastSuccess('Event deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No flock events recorded.'
       });
     } catch (err) {
@@ -714,6 +787,26 @@ export default {
           }
         ],
         rows: rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['PurchaseID', 'purchaseId', 'RecordID', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete feed purchase',
+            message: 'Delete this feed purchase? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('feed', id);
+            toastSuccess('Feed purchase deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No feed purchases yet.'
       });
     } catch (err) {
@@ -840,6 +933,26 @@ export default {
           }
         ],
         rows: rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['SaleID', 'saleId', 'RecordID', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete sale',
+            message: 'Delete this sale record? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('sales', id);
+            toastSuccess('Sale deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No sales recorded yet.'
       });
     } catch (err) {
@@ -1044,6 +1157,26 @@ export default {
           }
         ],
         rows: events,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['EventID', 'eventId', 'RecordID', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete treatment',
+            message: 'Delete this health record?',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('health', id);
+            toastSuccess('Record deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No treatments logged.'
       });
     } catch (err) {
@@ -1233,6 +1366,26 @@ export default {
           }
         ],
         rows: rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['NoteID', 'noteId', 'RecordID', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete note',
+            message: 'Delete this note?',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('notes', id);
+            toastSuccess('Note deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
         emptyMessage: 'No staff notes.'
       });
     } catch (err) {
