@@ -3,7 +3,7 @@
  */
 import { field, serializeForm, validateRequired } from '../components/Form.js';
 import { renderDataTable } from '../components/DataTable.js';
-import { openModal, closeModal } from '../components/Modal.js';
+import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { formatUGX, formatPercent, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { canApprove, canWrite } from '../js/auth.js';
@@ -257,6 +257,24 @@ export default {
           { key: 'Reference', label: 'Reference', accessor: (r) => r.Reference || r.reference || '—' }
         ],
         rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true }] : null,
+        onAction: async (action, row) => {
+          if (action !== 'delete') return;
+          const id = row.ContributionID || row.contributionId || row.id;
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          const ok = await confirmDialog({
+            title: 'Delete contribution',
+            message: 'Delete this capital contribution? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await finApi('capital', 'delete', { id });
+            toastSuccess('Deleted');
+            this.renderSection();
+          } catch (err) { toastError(err.message || 'Delete failed'); }
+        },
         emptyMessage: 'No capital contributions recorded.'
       });
     } catch (err) {
@@ -515,6 +533,24 @@ export default {
           }
         ],
         rows,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true }] : null,
+        onAction: async (action, row) => {
+          if (action !== 'delete') return;
+          const id = row.ExpenseID || row.expenseId || row.id;
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          const ok = await confirmDialog({
+            title: 'Delete expense',
+            message: 'Delete this expense? This cannot be undone.',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await finApi('expenses', 'delete', { id });
+            toastSuccess('Deleted');
+            this.renderSection();
+          } catch (err) { toastError(err.message || 'Delete failed'); }
+        },
         emptyMessage: 'No expenses recorded.'
       });
     } catch (err) {
