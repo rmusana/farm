@@ -46,7 +46,7 @@ function localInsights(s) {
   if (!s.commercialReached) {
     list.push({ severity: 'info', text: 'Commercial production is expected at Week 25 from stocking (1 June 2026) or when laying reaches 85%.' });
   }
-  list.push({ severity: 'info', text: 'Revenue allocation (50% feed / 25% of gross profit to operator / balance to investor) activates after commercial production.' });
+  list.push({ severity: 'info', text: 'Revenue allocation rules apply once commercial production levels are reached.' });
   if (s.outstandingFunding > 0) {
     list.push({ severity: 'caution', text: 'Estimated capital requirement remaining: ' + formatUGX(s.outstandingFunding) + '.' });
   }
@@ -234,7 +234,7 @@ export default {
           </p>
           <div style="display:flex;gap:var(--space-4);margin-top:var(--space-3);flex-wrap:wrap">
             <span class="u-text-xs u-text-muted">Week ${s.currentWeek ?? '—'} · ${formatNumber(s.birdCount)} birds</span>
-            <span class="u-text-xs u-text-muted">${s.commercialReached ? 'Commercial production active' : (s.daysToCommercial != null ? '~' + s.daysToCommercial + ' days to commercial' : 'Pre-commercial')}</span>
+            <span class="u-text-xs u-text-muted">${s.commercialReached ? 'Commercial production active' : (s.daysToCommercial != null ? '~' + s.daysToCommercial + ' days to commercial' : 'Building toward commercial')}</span>
           </div>
         </div>
       </div>
@@ -247,7 +247,7 @@ export default {
       {
         label: 'Total Investment',
         value: formatUGX(s.totalInvestment),
-        insight: 'Capital contributed by Investment Partner'
+        insight: 'Total capital contributed'
       },
       {
         label: 'Total Expenses',
@@ -257,12 +257,12 @@ export default {
       {
         label: 'Gross Revenue',
         value: formatUGX(s.revenue),
-        insight: s.commercialReached ? 'Egg sales attributable to LUK54' : 'Pre-commercial — allocation not yet active'
+        insight: s.commercialReached ? 'Egg sales attributable to LUK54' : 'Allocation not yet active'
       },
       {
         label: 'Net Profit (Investor)',
         value: formatUGX(s.netProfit),
-        insight: 'After 50% feed allocation and 25% operator share'
+        insight: 'After feed allocation and operator share'
       },
       {
         label: 'ROI',
