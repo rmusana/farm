@@ -143,7 +143,7 @@ export default {
         <div class="page-header-title">
           <div class="breadcrumb"><span>Main</span><span>/</span><span>Finance</span></div>
           <h1>Finance</h1>
-          <p class="u-text-secondary u-text-sm">Capital, disbursements, revenue and Clause 13 allocation</p>
+          <p class="u-text-secondary u-text-sm">Capital, disbursements, revenue and profit allocation</p>
         </div>
         <div class="page-header-actions" id="fin-actions"></div>
       </div>
@@ -209,21 +209,21 @@ export default {
           <div class="card card-glass kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${formatUGX(s.grossSalesRevenue)}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">Net Profit (Investor)</div><div class="kpi-value">${formatUGX(s.netProfitToInvestor)}</div>
-            <div class="kpi-insight">${s.commercialReached ? 'Clause 13 active' : 'Pre-commercial — allocation inactive'}</div></div>
+            <div class="kpi-insight">${s.commercialReached ? 'Allocation active' : 'Allocation not yet active'}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value">${formatPercent(s.roi)}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">Capital Recovery</div><div class="kpi-value">${formatPercent(s.capitalRecovery)}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">Cash Position</div><div class="kpi-value">${formatUGX(s.cashPosition)}</div></div>
           <div class="card card-glass kpi-card"><div class="kpi-label">Outstanding Funding</div><div class="kpi-value">${formatUGX(s.outstandingFunding)}</div></div>
         </div>
         <div class="card" style="padding:var(--space-5)">
-          <h3 style="margin-bottom:var(--space-3)">Clause 13 allocation (when commercial)</h3>
+          <h3 style="margin-bottom:var(--space-3)">Revenue allocation</h3>
           <p class="u-text-sm u-text-secondary" style="line-height:1.6;margin-bottom:var(--space-4)">
-            <strong>50%</strong> of Gross Sales Revenue → feed costs · Remaining <strong>50%</strong> = Gross Profit ·
-            <strong>25%</strong> of Gross Profit → Operating Partner · Balance = <strong>Net Profit</strong> to Investment Partner
+            Gross sales are split: half toward feed, half as gross profit.
+            A share of gross profit goes to the operating partner; the balance is net profit to the investor.
           </p>
           <div class="kpi-grid">
-            <div class="card kpi-card"><div class="kpi-label">Feed allocation (50%)</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.feedAllocation)}</div></div>
-            <div class="card kpi-card"><div class="kpi-label">Operator share (25% of GP)</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.operatingPartnerShare)}</div></div>
+            <div class="card kpi-card"><div class="kpi-label">Feed allocation</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.feedAllocation)}</div></div>
+            <div class="card kpi-card"><div class="kpi-label">Operator share</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.operatingPartnerShare)}</div></div>
             <div class="card kpi-card"><div class="kpi-label">Net to investor</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.netProfitToInvestor)}</div></div>
           </div>
         </div>`;
@@ -308,7 +308,7 @@ export default {
 
       content.innerHTML = `
         <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-4)">
-          Capital contributed by the Investment Partner versus amounts disbursed (spent) on the flock.
+          Capital contributed versus amounts disbursed (spent) on the flock.
         </p>
         <div class="kpi-grid" style="margin-bottom:var(--space-4)">
           <div class="card kpi-card"><div class="kpi-label">Capital contributed</div><div class="kpi-value">${formatUGX(totalCapital)}</div></div>
@@ -365,11 +365,11 @@ export default {
         }
       }
 
-      const total = sales.reduce((s, r) => s + Number(r.TotalRevenue ?? r.totalRevenue || 0), 0);
+      const total = sales.reduce((s, r) => s + Number((r.TotalRevenue ?? r.totalRevenue) || 0), 0);
       const trays = sales.reduce((s, r) => {
         const t = Number(r.QuantityTrays ?? r.quantityTrays);
         if (t) return s + t;
-        return s + Number(r.QuantityEggs ?? r.quantityEggs || 0) / 30;
+        return s + Number((r.QuantityEggs ?? r.quantityEggs) || 0) / 30;
       }, 0);
       const days = new Set(
         sales.map((r) => String(r.Date || r.date || '').slice(0, 10)).filter(Boolean)
@@ -379,9 +379,9 @@ export default {
       const byPay = {};
       sales.forEach((r) => {
         const c = r.SaleCategory || r.saleCategory || 'Eggs';
-        byCat[c] = (byCat[c] || 0) + Number(r.TotalRevenue ?? r.totalRevenue || 0);
+        byCat[c] = (byCat[c] || 0) + Number((r.TotalRevenue ?? r.totalRevenue) || 0);
         const p = r.PaymentStatus || r.paymentStatus || '—';
-        byPay[p] = (byPay[p] || 0) + Number(r.TotalRevenue ?? r.totalRevenue || 0);
+        byPay[p] = (byPay[p] || 0) + Number((r.TotalRevenue ?? r.totalRevenue) || 0);
       });
 
       // Build HTML without nested template literals (avoids syntax errors)
@@ -553,7 +553,7 @@ export default {
     });
   },
 
-  /* ── Clause 13 Allocation ─────────────────────────────── */
+  /* ── Revenue Allocation ───────────────────────────────── */
 
   async secAllocation(content, actions) {
     const month = currentMonth();
@@ -581,20 +581,20 @@ export default {
           '" style="width:18px;height:18px"></i></div>' +
           '<div class="insight-text">' +
           (active
-            ? 'Commercial production reached. Clause 13 revenue allocation is active for ' + (a.month || m) + '.'
-            : 'Pre-commercial. Clause 13 allocation is not yet applied. Month: ' + (a.month || m)) +
+            ? 'Revenue allocation is active for ' + (a.month || m) + '.'
+            : 'Revenue allocation is not yet active for this period. Month: ' + (a.month || m)) +
           '</div></div>' +
           '<div class="kpi-grid">' +
           '<div class="card kpi-card"><div class="kpi-label">Gross sales revenue</div><div class="kpi-value">' +
           formatUGX(a.grossSalesRevenue) +
           '</div></div>' +
-          '<div class="card kpi-card"><div class="kpi-label">Feed allocation (50%)</div><div class="kpi-value">' +
+          '<div class="card kpi-card"><div class="kpi-label">Feed allocation</div><div class="kpi-value">' +
           formatUGX(a.feedAllocation) +
           '</div></div>' +
-          '<div class="card kpi-card"><div class="kpi-label">Gross profit (50%)</div><div class="kpi-value">' +
+          '<div class="card kpi-card"><div class="kpi-label">Gross profit</div><div class="kpi-value">' +
           formatUGX(a.grossProfit) +
           '</div></div>' +
-          '<div class="card kpi-card"><div class="kpi-label">Operator share (25% of GP)</div><div class="kpi-value">' +
+          '<div class="card kpi-card"><div class="kpi-label">Operator share</div><div class="kpi-value">' +
           formatUGX(a.operatingPartnerShare) +
           '</div></div>' +
           '<div class="card kpi-card"><div class="kpi-label">Net profit to investor</div><div class="kpi-value">' +
@@ -762,7 +762,7 @@ export default {
           '<div class="card kpi-card"><div class="kpi-label">Funding required</div><div class="kpi-value">' +
           formatUGX(f.fundingRequired) +
           '</div></div></div>' +
-          '<p class="u-text-xs u-text-muted" style="margin-top:var(--space-4)">Based on the last 30 days of sales and expenses. Pre-commercial flocks show limited allocation projections.</p>';
+          '<p class="u-text-xs u-text-muted" style="margin-top:var(--space-4)">Based on the last 30 days of sales and expenses.</p>';
       } catch (err) {
         content.innerHTML = '<div class="empty-state"><p class="empty-state-desc">' + err.message + '</p></div>';
       }

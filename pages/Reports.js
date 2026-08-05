@@ -7,9 +7,9 @@ import { canApprove } from '../js/auth.js';
 import api from '../js/api.js';
 
 const REPORT_TYPES = [
-  { id: 'monthly_statement', name: 'Monthly Investment Statement', desc: 'Clause 10 – contributions, expenditures, production', icon: 'file-text' },
+  { id: 'monthly_statement', name: 'Monthly Investment Statement', desc: 'Contributions, expenditures and production', icon: 'file-text' },
   { id: 'production', name: 'Production Report', desc: 'Eggs, mortality, feed by day', icon: 'egg' },
-  { id: 'financial', name: 'Financial Report', desc: 'Clause 13 allocation and P&L attribution', icon: 'landmark' },
+  { id: 'financial', name: 'Financial Report', desc: 'Revenue allocation and P&L', icon: 'landmark' },
   { id: 'budget', name: 'Capital vs Disbursed', desc: 'Capital contributed vs amounts spent', icon: 'calculator' },
   { id: 'expense', name: 'Expense Report', desc: 'Expenditures by category', icon: 'receipt' },
   { id: 'revenue', name: 'Revenue Report', desc: 'Egg sales and revenue', icon: 'shopping-cart' },
@@ -18,7 +18,7 @@ const REPORT_TYPES = [
   { id: 'mortality', name: 'Mortality Report', desc: 'Losses and rates', icon: 'activity' },
   { id: 'feed', name: 'Feed Report', desc: 'Purchases and consumption', icon: 'wheat' },
   { id: 'executive', name: 'Executive Summary', desc: 'One-page investor overview', icon: 'layout-dashboard' },
-  { id: 'audit', name: 'Audit Report', desc: 'Clause 15 transaction package', icon: 'shield-check' }
+  { id: 'audit', name: 'Audit Report', desc: 'Transaction package for review', icon: 'shield-check' }
 ];
 
 function currentMonth() {
@@ -63,7 +63,7 @@ function localGenerate(type, period) {
       },
       capitalLines: pc,
       expenseLines: pe,
-      note: 'Prepared under Clause 10. Due by the 10th of the following month.'
+      note: 'Prepared under Monthly statement. Due by the 10th of the following month.'
     };
   }
 
@@ -86,7 +86,7 @@ function localGenerate(type, period) {
         mortality: pd.reduce((s, r) => s + Number(r.Mortality || r.mortality || 0), 0),
         days: pd.length
       },
-      healthNote: 'Pre-commercial phase. Log operations to build live intelligence.'
+      healthNote: 'Log operations regularly to keep reports up to date.'
     };
   }
 
