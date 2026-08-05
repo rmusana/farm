@@ -391,3 +391,11 @@ body.sidebar-collapsed .main-wrapper {
 .sidebar-overlay.visible {
   display: block;
 }
+
+
+/* Reach out label – hide text on very small screens */
+@media (max-width: 640px) {
+  .reach-label {
+    display: none;
+  }
+}

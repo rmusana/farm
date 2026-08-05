@@ -74,7 +74,8 @@ var Operations = {
     this.ensureHeaders(sheet, [
       'RecordID', 'ProjectID', 'Date', 'OpeningBirds', 'Mortality', 'ClosingBirds',
       'EggsCollected', 'Breakages', 'FeedBrandKg', 'FeedHendrixKg', 'FeedLimeKg',
-      'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg', 'Notes', 'DocumentIDs', 'CreatedBy', 'CreatedAt'
+      'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg', 'Notes', 'DocumentIDs', 'CreatedBy', 'CreatedAt',
+      'Section', 'EggsLost', 'FeedLimePowderKg', 'FeedLimestoneKg', 'FeedMaizeKg', 'FeedOthersKg', 'FeedConcentrateKg'
     ]);
 
     var opening = Utils.toNumber(body.openingBirds);
@@ -93,7 +94,14 @@ var Operations = {
       EggsCollected: Utils.toNumber(body.eggsCollected),
       Breakages: Utils.toNumber(body.breakages),
       FeedBrandKg: Utils.toNumber(body.feedBrandKg),
-      FeedHendrixKg: Utils.toNumber(body.feedHendrixKg),
+      FeedHendrixKg: Utils.toNumber(body.feedHendrixKg || body.feedConcentrateKg),
+      Section: body.section || 'Combined',
+      EggsLost: Utils.toNumber(body.eggsLost),
+      FeedLimePowderKg: Utils.toNumber(body.feedLimePowderKg),
+      FeedLimestoneKg: Utils.toNumber(body.feedLimestoneKg),
+      FeedMaizeKg: Utils.toNumber(body.feedMaizeKg),
+      FeedOthersKg: Utils.toNumber(body.feedOthersKg),
+      FeedConcentrateKg: Utils.toNumber(body.feedConcentrateKg || body.feedHendrixKg),
       FeedLimeKg: Utils.toNumber(body.feedLimeKg),
       FeedSoyaKg: Utils.toNumber(body.feedSoyaKg),
       FeedSunflowerKg: Utils.toNumber(body.feedSunflowerKg),
@@ -250,26 +258,47 @@ var Operations = {
   },
 
   createSale: function (body) {
-    Utils.requireFields(body, ['date', 'quantityEggs', 'unitPrice']);
+    // Accept trays (preferred) or legacy quantityEggs
+    var trays = Utils.toNumber(body.quantityTrays);
+    var qtyEggs = Utils.toNumber(body.quantityEggs);
+    if (!trays && qtyEggs) trays = qtyEggs / 30;
+    if (!qtyEggs && trays) qtyEggs = trays * 30;
+    if (!body.date) return { success: false, error: 'date required' };
+    if (!trays && !qtyEggs) return { success: false, error: 'quantityTrays or quantityEggs required' };
+    if (body.unitPrice == null || body.unitPrice === '') return { success: false, error: 'unitPrice required' };
+
     var pid = this.projectId(body);
     var sheet = getSheet('Sales');
-    this.ensureHeaders(sheet, ['SaleID', 'ProjectID', 'Date', 'Customer', 'QuantityEggs', 'UnitPrice', 'TotalRevenue', 'PaymentStatus', 'PaymentRef', 'DocumentID', 'CreatedBy', 'CreatedAt']);
-    var qty = Utils.toNumber(body.quantityEggs);
+    // New columns appended; old columns kept for existing data
+    this.ensureHeaders(sheet, [
+      'SaleID', 'ProjectID', 'Date', 'Customer', 'QuantityEggs', 'UnitPrice', 'TotalRevenue',
+      'PaymentStatus', 'PaymentRef', 'DocumentID', 'CreatedBy', 'CreatedAt',
+      'QuantityTrays', 'SaleCategory', 'EggType', 'BreakageTraysSold', 'DamagedTraysSold', 'LostTrays', 'Notes'
+    ]);
     var price = Utils.toNumber(body.unitPrice);
+    // Revenue = trays × price/tray (if trays present), else eggs × price (legacy)
+    var revenue = trays ? (trays * price) : (qtyEggs * price);
     var id = Utils.generateId('sl');
     var row = {
       SaleID: id,
       ProjectID: pid,
       Date: body.date,
       Customer: body.customer || '',
-      QuantityEggs: qty,
+      QuantityEggs: qtyEggs,
       UnitPrice: price,
-      TotalRevenue: qty * price,
-      PaymentStatus: body.paymentStatus || 'Paid',
+      TotalRevenue: revenue,
+      PaymentStatus: body.paymentStatus || 'Cash',
       PaymentRef: body.paymentRef || '',
       DocumentID: body.documentId || '',
       CreatedBy: (body._user && body._user.Email) || '',
-      CreatedAt: Utils.nowISO()
+      CreatedAt: Utils.nowISO(),
+      QuantityTrays: trays,
+      SaleCategory: body.saleCategory || 'Eggs',
+      EggType: body.eggType || '',
+      BreakageTraysSold: Utils.toNumber(body.breakageTraysSold),
+      DamagedTraysSold: Utils.toNumber(body.damagedTraysSold),
+      LostTrays: Utils.toNumber(body.lostTrays),
+      Notes: body.notes || ''
     };
     Utils.appendObject(sheet, row);
     return { success: true, data: row };
@@ -515,6 +544,17 @@ var Operations = {
   ensureHeaders: function (sheet, headers) {
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(headers);
+      return;
+    }
+    // Append any missing columns without disturbing existing data
+    var existing = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var missing = [];
+    headers.forEach(function (h) {
+      if (existing.indexOf(h) === -1) missing.push(h);
+    });
+    if (missing.length) {
+      var start = sheet.getLastColumn() + 1;
+      sheet.getRange(1, start, 1, start + missing.length - 1).setValues([missing]);
     }
   },
 
@@ -568,11 +608,16 @@ var Operations = {
   updateFeedInventoryFromIssue: function (pid, dailyRow) {
     var map = {
       Brand: dailyRow.FeedBrandKg,
-      Hendrix: dailyRow.FeedHendrixKg,
+      Concentrate: dailyRow.FeedConcentrateKg || dailyRow.FeedHendrixKg,
+      Hendrix: dailyRow.FeedHendrixKg, // legacy alias
+      'Lime powder': dailyRow.FeedLimePowderKg,
+      Limestone: dailyRow.FeedLimestoneKg,
       Lime: dailyRow.FeedLimeKg,
       Soya: dailyRow.FeedSoyaKg,
       Sunflower: dailyRow.FeedSunflowerKg,
-      Broken: dailyRow.FeedBrokenKg
+      Broken: dailyRow.FeedBrokenKg,
+      Maize: dailyRow.FeedMaizeKg,
+      Others: dailyRow.FeedOthersKg
     };
     var self = this;
     Object.keys(map).forEach(function (p) {

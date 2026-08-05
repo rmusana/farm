@@ -1,8 +1,6 @@
 /**
  * API client – all communication goes through Google Apps Script Web App.
  * Set window.RMUSANA_API_URL to the deployed Web App URL.
- *
- * Apps Script CORS: use text/plain body so the browser skips OPTIONS preflight.
  */
 const DEFAULT_TIMEOUT = 30000;
 
@@ -18,7 +16,7 @@ async function request(path, options = {}) {
     throw err;
   }
 
-  const url = base;
+  const url = `${base}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
 
@@ -74,7 +72,7 @@ export const api = {
   request,
   auth: {
     me: () => request('/auth', { body: { action: 'me', module: 'auth' } }),
-    login: (payload) => request('/auth', { body: { module: 'auth', action: 'login', ...payload } }),
+    login: (payload) => request('/auth', { body: { module: 'auth', ...payload } }),
     logout: () => request('/auth', { body: { action: 'logout', module: 'auth' } })
   },
   dashboard: {
@@ -103,50 +101,22 @@ export const api = {
     notesCreate: (p) => ops('notes', 'create', p)
   },
   finance: {
-    capitalList: (params) =>
-      request('/finance', { body: { action: 'list', module: 'finance', resource: 'capital', ...params } }),
-    capitalCreate: (params) =>
-      request('/finance', { body: { action: 'create', module: 'finance', resource: 'capital', ...params } }),
-    expensesList: (params) =>
-      request('/finance', { body: { action: 'list', module: 'finance', resource: 'expenses', ...params } }),
-    expensesCreate: (params) =>
-      request('/finance', { body: { action: 'create', module: 'finance', resource: 'expenses', ...params } }),
-    budgetStatus: (params) =>
-      request('/finance', { body: { action: 'budgetStatus', module: 'finance', ...params } }),
-    budgetSeed: (params) =>
-      request('/finance', { body: { action: 'budgetSeed', module: 'finance', ...params } }),
-    summary: (params) =>
-      request('/finance', { body: { action: 'summary', module: 'finance', ...params } }),
-    allocation: (params) =>
-      request('/finance', { body: { action: 'allocation', module: 'finance', ...params } }),
-    distributions: (params) =>
-      request('/finance', { body: { action: 'distributions', module: 'finance', ...params } }),
-    forecast: (params) =>
-      request('/finance', { body: { action: 'forecast', module: 'finance', ...params } })
+    capitalList: (params) => request('/finance', { body: { action: 'list', module: 'finance', resource: 'capital', ...params } }),
+    expensesList: (params) => request('/finance', { body: { action: 'list', module: 'finance', resource: 'expenses', ...params } })
   },
   reports: {
-    generate: (params) => request('/reports', { body: { module: 'reports', action: 'generate', ...params } }),
-    list: () => request('/reports', { body: { module: 'reports', action: 'list' } }),
-    history: (params) => request('/reports', { body: { module: 'reports', action: 'history', ...params } }),
-    email: (params) => request('/reports', { body: { module: 'reports', action: 'email', ...params } })
+    generate: (params) => request('/reports', { body: { module: 'reports', ...params } })
   },
   alerts: {
     list: () => request('/alerts', { body: { action: 'list', module: 'alerts' } }),
-    resolve: (id) => request('/alerts', { body: { action: 'resolve', module: 'alerts', alertId: id } }),
-    acknowledge: (id) => request('/alerts', { body: { action: 'acknowledge', module: 'alerts', alertId: id } }),
-    run: () => request('/alerts', { body: { action: 'run', module: 'alerts' } })
+    resolve: (id) => request('/alerts', { body: { action: 'resolve', module: 'alerts', alertId: id } })
   },
   documents: {
-    list: (params) => request('/documents', { body: { action: 'list', module: 'documents', ...params } }),
-    upload: (params) => request('/documents', { body: { action: 'upload', module: 'documents', ...params } }),
-    get: (params) => request('/documents', { body: { action: 'get', module: 'documents', ...params } }),
-    delete: (params) => request('/documents', { body: { action: 'delete', module: 'documents', ...params } })
+    list: (params) => request('/documents', { body: { action: 'list', module: 'documents', ...params } })
   },
   settings: {
     get: () => request('/settings', { body: { action: 'get', module: 'settings' } }),
-    update: (payload) => request('/settings', { body: { action: 'update', module: 'settings', ...payload } }),
-    users: () => request('/settings', { body: { action: 'users', module: 'settings' } }),
-    backup: () => request('/settings', { body: { action: 'backup', module: 'settings' } })
+    update: (payload) => request('/settings', { body: { action: 'update', module: 'settings', ...payload } })
   }
 };
 
