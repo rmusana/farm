@@ -12,7 +12,7 @@ export default {
       <div class="login-page">
         <div class="login-card card">
           <div class="login-brand">
-            <div class="sidebar-brand-mark" style="width:48px;height:48px;font-size:18px">RM</div>
+            <div class="sidebar-brand-mark" style="width:48px;height:48px;font-size:18px">L5</div>
             <h1>LUK54</h1>
             <p class="u-text-secondary u-text-sm">Poultry Management & Investment Platform</p>
           </div>
