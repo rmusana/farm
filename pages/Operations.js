@@ -20,7 +20,30 @@ const TABS = [
   { id: 'notes', label: 'Staff Notes' }
 ];
 
-const FEED_PRODUCTS = ['Brand', 'Hendrix', 'Lime', 'Soya', 'Sunflower', 'Broken'];
+const FEED_PRODUCTS = [
+  { key: 'Brand', label: 'Brand' },
+  { key: 'Concentrate', label: 'Concentrate', legacy: 'Hendrix' },
+  { key: 'LimePowder', label: 'Lime powder' },
+  { key: 'Limestone', label: 'Limestone' },
+  { key: 'Soya', label: 'Soya' },
+  { key: 'Sunflower', label: 'Sunflower' },
+  { key: 'Broken', label: 'Broken' },
+  { key: 'Maize', label: 'Maize' },
+  { key: 'Others', label: 'Others' }
+];
+const EGG_TYPES = [
+  { id: 'Starter', defaultPrice: 9000 },
+  { id: 'Normal', defaultPrice: 11000 },
+  { id: 'Medium', defaultPrice: 10000 }
+];
+const PAYMENT_STATUSES = ['Cash', 'Cheque', 'Debt'];
+const SALE_CATEGORIES = ['Eggs', 'Litter', 'Others'];
+const TRAY_SIZE = 30; // eggs per tray
+const FLOCK_SECTIONS = [
+  { id: 'A', birds: 1500, label: 'Section A (1,500)' },
+  { id: 'B', birds: 1000, label: 'Section B (1,000)' },
+  { id: 'Combined', birds: 2500, label: 'Combined (2,500)' }
+];
 const MEDS = ['GLUCOVIT', 'ASHYTL', 'LIMOVIT', 'MACROLAN', 'COCCITOLTRAZOL', 'OXYVITAMIN', 'LEVACIDE', 'DISINFECTANT'];
 const VACCINES = ['NEWCASTLE IB', 'GUMBOLO 1', 'GUMBOLO 2', 'NEWCASTLE PLAIN', 'FOWL POX', 'DEWORMING', 'DEBEAKING', 'FOWL TYPHOID', 'NEWCASTLE LASOTA'];
 
@@ -93,7 +116,7 @@ async function apiOrLocal(resource, action, payload = {}) {
     if (action === 'inventory' && resource === 'feed') {
       let inv = localStore('feedInv');
       if (!inv.length) {
-        inv = FEED_PRODUCTS.map((p) => ({ Product: p, ClosingStock: 0, UnitCost: 0 }));
+        inv = FEED_PRODUCTS.map((p) => ({ Product: p.label || p, ClosingStock: 0, UnitCost: 0 }));
         localStore('feedInv', inv);
       }
       return { success: true, data: inv };
@@ -116,7 +139,13 @@ async function apiOrLocal(resource, action, payload = {}) {
       row.EggsCollected = Number(payload.eggsCollected) || 0;
       row.Breakages = Number(payload.breakages) || 0;
       row.FeedBrandKg = Number(payload.feedBrandKg) || 0;
-      row.FeedHendrixKg = Number(payload.feedHendrixKg) || 0;
+      row.FeedHendrixKg = Number(payload.feedHendrixKg || payload.feedConcentrateKg) || 0;
+      row.Section = payload.section || 'Combined';
+      row.EggsLost = Number(payload.eggsLost) || 0;
+      row.FeedMaizeKg = Number(payload.feedMaizeKg) || 0;
+      row.FeedOthersKg = Number(payload.feedOthersKg) || 0;
+      row.FeedLimePowderKg = Number(payload.feedLimePowderKg) || 0;
+      row.FeedLimestoneKg = Number(payload.feedLimestoneKg) || 0;
       row.FeedLimeKg = Number(payload.feedLimeKg) || 0;
       row.FeedSoyaKg = Number(payload.feedSoyaKg) || 0;
       row.FeedSunflowerKg = Number(payload.feedSunflowerKg) || 0;
@@ -126,9 +155,15 @@ async function apiOrLocal(resource, action, payload = {}) {
     if (resource === 'sales' || resource === 'eggs') {
       row.Date = payload.date;
       row.Customer = payload.customer || '';
-      row.QuantityEggs = Number(payload.quantityEggs) || 0;
+      row.QuantityEggs = Number(payload.quantityEggs) || (Number(payload.quantityTrays)||0)*30;
+      row.QuantityTrays = Number(payload.quantityTrays) || (Number(payload.quantityEggs)||0)/30;
+      row.SaleCategory = payload.saleCategory || 'Eggs';
+      row.EggType = payload.eggType || '';
+      row.BreakageTraysSold = Number(payload.breakageTraysSold)||0;
+      row.DamagedTraysSold = Number(payload.damagedTraysSold)||0;
+      row.LostTrays = Number(payload.lostTrays)||0;
       row.UnitPrice = Number(payload.unitPrice) || 0;
-      row.TotalRevenue = row.QuantityEggs * row.UnitPrice;
+      row.TotalRevenue = (row.QuantityTrays ? row.QuantityTrays * row.UnitPrice : row.QuantityEggs * row.UnitPrice);
       row.PaymentStatus = payload.paymentStatus || 'Paid';
     }
     if (resource === 'feed' && action === 'purchase') {
@@ -301,12 +336,16 @@ export default {
           ${field({ name: 'closingBirds', label: 'Closing birds', type: 'number', hint: 'Auto: opening − mortality if blank' })}
         </div>
         <div class="form-row">
+          ${field({ name: 'section', label: 'Section', type: 'select', options: FLOCK_SECTIONS.map(s => s.id + ' — ' + s.label), value: 'Combined' })}
+        </div>
+        <div class="form-row">
           ${field({ name: 'eggsCollected', label: 'Eggs collected', type: 'number', value: '0' })}
-          ${field({ name: 'breakages', label: 'Breakages', type: 'number', value: '0' })}
+          ${field({ name: 'breakages', label: 'Breakages (eggs)', type: 'number', value: '0' })}
+          ${field({ name: 'eggsLost', label: 'Lost (exchange)', type: 'number', value: '0' })}
         </div>
         <p class="u-font-semibold u-text-sm" style="margin:var(--space-2) 0">Feed issued (kg)</p>
         <div class="form-row">
-          ${FEED_PRODUCTS.map((p) => field({ name: 'feed' + p + 'Kg', label: p, type: 'number', value: '0' })).join('')}
+          ${FEED_PRODUCTS.map((p) => field({ name: 'feed' + p.key + 'Kg', label: p.label, type: 'number', value: '0' })).join('')}
         </div>
         ${field({ name: 'notes', label: 'Notes / observations', type: 'textarea' })}
       </form>
@@ -325,19 +364,28 @@ export default {
       if (!validateRequired(form, ['date', 'openingBirds'])) return;
       const data = serializeForm(form);
       // Map feed fields
+      const sectionRaw = (data.section || 'Combined').split('—')[0].trim();
       const payload = {
         date: data.date,
+        section: sectionRaw,
         openingBirds: data.openingBirds,
         mortality: data.mortality || 0,
         closingBirds: data.closingBirds || undefined,
         eggsCollected: data.eggsCollected || 0,
         breakages: data.breakages || 0,
+        eggsLost: data.eggsLost || 0,
         feedBrandKg: data.feedBrandKg || 0,
-        feedHendrixKg: data.feedHendrixKg || 0,
-        feedLimeKg: data.feedLimeKg || 0,
+        // Concentrate stored in FeedHendrixKg for backward compatibility with existing sheets
+        feedHendrixKg: data.feedConcentrateKg || data.feedHendrixKg || 0,
+        feedConcentrateKg: data.feedConcentrateKg || 0,
+        feedLimeKg: (Number(data.feedLimePowderKg || 0) + Number(data.feedLimestoneKg || 0)) || data.feedLimeKg || 0,
+        feedLimePowderKg: data.feedLimePowderKg || 0,
+        feedLimestoneKg: data.feedLimestoneKg || 0,
         feedSoyaKg: data.feedSoyaKg || 0,
         feedSunflowerKg: data.feedSunflowerKg || 0,
         feedBrokenKg: data.feedBrokenKg || 0,
+        feedMaizeKg: data.feedMaizeKg || 0,
+        feedOthersKg: data.feedOthersKg || 0,
         notes: data.notes || ''
       };
       try {
@@ -470,7 +518,7 @@ export default {
     const html = `
       <form id="form-feed">
         ${field({ name: 'date', label: 'Date', type: 'date', required: true, value: today() })}
-        ${field({ name: 'product', label: 'Product', type: 'select', required: true, options: FEED_PRODUCTS })}
+        ${field({ name: 'product', label: 'Product', type: 'select', required: true, options: FEED_PRODUCTS.map(p => p.label || p) })}
         <div class="form-row">
           ${field({ name: 'qtyKg', label: 'Quantity (kg)', type: 'number', required: true })}
           ${field({ name: 'unitCost', label: 'Unit cost (UGX)', type: 'number', required: true })}
@@ -518,14 +566,21 @@ export default {
       renderDataTable(content.querySelector('#sales-table'), {
         columns: [
           { key: 'Date', label: 'Date', accessor: (r) => r.Date || r.date },
+          { key: 'SaleCategory', label: 'Type', accessor: (r) => r.SaleCategory || r.saleCategory || 'Eggs' },
+          { key: 'EggType', label: 'Egg type', accessor: (r) => r.EggType || r.eggType || '—' },
           { key: 'Customer', label: 'Customer', accessor: (r) => r.Customer || r.customer || '—' },
-          { key: 'QuantityEggs', label: 'Eggs', accessor: (r) => formatNumber(r.QuantityEggs ?? r.quantityEggs) },
-          { key: 'UnitPrice', label: 'Unit price', accessor: (r) => formatUGX(r.UnitPrice ?? r.unitPrice) },
+          { key: 'QuantityTrays', label: 'Trays', accessor: (r) => {
+            const trays = r.QuantityTrays ?? r.quantityTrays;
+            if (trays != null && trays !== '') return formatNumber(trays);
+            const eggs = Number(r.QuantityEggs ?? r.quantityEggs || 0);
+            return eggs ? formatNumber(eggs / TRAY_SIZE, 1) : '0';
+          }},
+          { key: 'UnitPrice', label: 'Price/tray', accessor: (r) => formatUGX(r.UnitPrice ?? r.unitPrice) },
           { key: 'TotalRevenue', label: 'Revenue', accessor: (r) => formatUGX(r.TotalRevenue ?? r.totalRevenue) },
           { key: 'PaymentStatus', label: 'Payment', accessor: (r) => r.PaymentStatus || r.paymentStatus || '—' }
         ],
         rows,
-        emptyMessage: 'No egg sales recorded yet.'
+        emptyMessage: 'No sales recorded yet.'
       });
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
@@ -536,28 +591,61 @@ export default {
     const html = `
       <form id="form-sale">
         ${field({ name: 'date', label: 'Date', type: 'date', required: true, value: today() })}
+        <div class="form-row">
+          ${field({ name: 'saleCategory', label: 'Sale type', type: 'select', options: SALE_CATEGORIES, value: 'Eggs' })}
+          ${field({ name: 'eggType', label: 'Egg type', type: 'select', options: EGG_TYPES.map(e => e.id), value: 'Normal' })}
+        </div>
         ${field({ name: 'customer', label: 'Customer' })}
         <div class="form-row">
-          ${field({ name: 'quantityEggs', label: 'Quantity (eggs)', type: 'number', required: true })}
-          ${field({ name: 'unitPrice', label: 'Unit price (UGX)', type: 'number', required: true })}
+          ${field({ name: 'quantityTrays', label: 'Quantity (trays)', type: 'number', required: true, hint: TRAY_SIZE + ' eggs per tray' })}
+          ${field({ name: 'unitPrice', label: 'Price per tray (UGX)', type: 'number', required: true, value: '11000' })}
+        </div>
+        <p class="u-text-xs u-text-muted" style="margin-bottom:var(--space-3)">Starter / Normal / Medium have different tray prices — adjust as needed.</p>
+        <div class="form-row">
+          ${field({ name: 'breakageTraysSold', label: 'Breakage sold (trays)', type: 'number', value: '0' })}
+          ${field({ name: 'damagedTraysSold', label: 'Damaged sold (trays)', type: 'number', value: '0' })}
+          ${field({ name: 'lostTrays', label: 'Lost in exchange (trays)', type: 'number', value: '0' })}
         </div>
         ${field({
           name: 'paymentStatus', label: 'Payment status', type: 'select',
-          options: ['Paid', 'Partial', 'Outstanding'], value: 'Paid'
+          options: PAYMENT_STATUSES, value: 'Cash'
         })}
-        ${field({ name: 'paymentRef', label: 'Payment reference' })}
+        ${field({ name: 'paymentRef', label: 'Payment reference / cheque no.' })}
+        ${field({ name: 'notes', label: 'Notes', type: 'textarea' })}
       </form>
     `;
     openModal({
-      title: 'Egg sale',
+      title: 'Record sale',
       content: html,
+      size: 'lg',
       footer: `<button class="btn btn-secondary" data-modal-close>Cancel</button><button class="btn btn-primary" id="save-sale">Save</button>`
+    });
+    // Auto price by egg type
+    const formEl = document.getElementById('form-sale');
+    formEl?.querySelector('[name="eggType"]')?.addEventListener('change', (e) => {
+      const found = EGG_TYPES.find((x) => x.id === e.target.value);
+      const price = formEl.querySelector('[name="unitPrice"]');
+      if (found && price) price.value = found.defaultPrice;
     });
     document.getElementById('save-sale')?.addEventListener('click', async () => {
       const form = document.getElementById('form-sale');
-      if (!validateRequired(form, ['date', 'quantityEggs', 'unitPrice'])) return;
+      if (!validateRequired(form, ['date', 'quantityTrays', 'unitPrice'])) return;
+      const data = serializeForm(form);
+      const trays = Number(data.quantityTrays) || 0;
+      const payload = {
+        ...data,
+        quantityTrays: trays,
+        quantityEggs: trays * TRAY_SIZE, // backward compatible for existing reports
+        unitPrice: data.unitPrice,
+        saleCategory: data.saleCategory || 'Eggs',
+        eggType: data.eggType || 'Normal',
+        paymentStatus: data.paymentStatus || 'Cash',
+        breakageTraysSold: data.breakageTraysSold || 0,
+        damagedTraysSold: data.damagedTraysSold || 0,
+        lostTrays: data.lostTrays || 0
+      };
       try {
-        await apiOrLocal('sales', 'create', serializeForm(form));
+        await apiOrLocal('sales', 'create', payload);
         toastSuccess('Sale recorded');
         closeModal();
         this.renderTab();

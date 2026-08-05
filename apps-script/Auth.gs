@@ -5,13 +5,14 @@
  * Users sheet columns:
  * UserID | Email | Name | Role | PasswordHash | Active | GoogleSub | LastLogin
  *
- * Roles: Investor | Administrator | OperationsManager | Viewer
+ * Roles: Investor | Administrator | OperationsManager (Operating Partner) | Viewer
  */
 var Auth = {
   handle: function (body) {
     var action = (body.action || 'me').toString();
     if (action === 'me') return this.me(body);
     if (action === 'login') return this.login(body);
+    if (action === 'changePassword') return this.changePassword(body);
     if (action === 'google') return this.googleLogin(body);
     if (action === 'logout') return this.logout(body);
     return { success: false, error: 'Unknown auth action' };
@@ -146,6 +147,34 @@ var Auth = {
     CacheService.getScriptCache().remove('sess_' + token);
   },
 
+
+  changePassword: function (body) {
+    var token = this.extractToken(body);
+    var session = token ? this.validateToken(token) : null;
+    var user = body._user || (session ? this.findUserById(session.userId) : null);
+    if (!user) return { success: false, error: 'Not authenticated' };
+    var current = (body.currentPassword || '').toString();
+    var next = (body.newPassword || '').toString();
+    if (!current || !next) return { success: false, error: 'Current and new password required' };
+    if (next.length < 6) return { success: false, error: 'New password must be at least 6 characters' };
+    var expectedHash = this.hashPassword(current, user.UserID);
+    var stored = String(user.PasswordHash || '');
+    var ok = (stored === expectedHash) || (stored === current); // hashed or legacy plain
+    if (!ok) return { success: false, error: 'Current password is incorrect' };
+    var sheet = getSheet('Users');
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'Users sheet empty. Run setupAuth first.' };
+    var headers = data[0];
+    var idCol = headers.indexOf('UserID');
+    var hashCol = headers.indexOf('PasswordHash');
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(user.UserID)) {
+        sheet.getRange(i + 1, hashCol + 1).setValue(this.hashPassword(next, user.UserID));
+        return { success: true, message: 'Password updated' };
+      }
+    }
+    return { success: false, error: 'User not found in Users sheet. Run setupAuth first.' };
+  },
   hashPassword: function (password, salt) {
     var raw = password + ':' + (salt || 'rmusana');
     var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw);
@@ -201,7 +230,7 @@ var Auth = {
     return [
       { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Robert Musana', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
       { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Moses Odong', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Joseph Sango', Role: 'OperationsManager', PasswordHash: 'ops2026', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Jalo Dream Farm', Role: 'OperationsManager', PasswordHash: 'ops2026', Active: true, GoogleSub: '', LastLogin: '' },
       { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'System Admin', Role: 'Administrator', PasswordHash: 'admin2026', Active: true, GoogleSub: '', LastLogin: '' }
     ];
   },

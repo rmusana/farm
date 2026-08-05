@@ -10,7 +10,7 @@ const REPORT_TYPES = [
   { id: 'monthly_statement', name: 'Monthly Investment Statement', desc: 'Clause 10 – contributions, expenditures, production', icon: 'file-text' },
   { id: 'production', name: 'Production Report', desc: 'Eggs, mortality, feed by day', icon: 'egg' },
   { id: 'financial', name: 'Financial Report', desc: 'Clause 13 allocation and P&L attribution', icon: 'landmark' },
-  { id: 'budget', name: 'Budget vs Actual', desc: 'Budget lines against actual spend', icon: 'calculator' },
+  { id: 'budget', name: 'Capital vs Disbursed', desc: 'Capital contributed vs amounts spent', icon: 'calculator' },
   { id: 'expense', name: 'Expense Report', desc: 'Expenditures by category', icon: 'receipt' },
   { id: 'revenue', name: 'Revenue Report', desc: 'Egg sales and revenue', icon: 'shopping-cart' },
   { id: 'profit', name: 'Profit Distribution', desc: 'Investor profit payments', icon: 'banknote' },
@@ -175,8 +175,15 @@ export default {
           <h1>Reports</h1>
           <p class="u-text-secondary u-text-sm">Generate, preview, print and email statements</p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+          <select class="form-input" id="report-granularity" style="width:auto;height:36px">
+            <option value="week">Weekly</option>
+            <option value="month" selected>Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+          <input type="week" class="form-input" id="report-period-week" style="width:auto;height:36px;display:none" />
           <input type="month" class="form-input" id="report-period" value="${currentMonth()}" style="width:auto;height:36px" />
+          <input type="number" class="form-input" id="report-period-year" min="2024" max="2100" value="${new Date().getFullYear()}" style="width:100px;height:36px;display:none" />
         </div>
       </div>
 
@@ -211,6 +218,20 @@ export default {
     root.querySelectorAll('[data-report]').forEach((btn) => {
       btn.addEventListener('click', () => this.generate(btn.dataset.report));
     });
+
+    
+    const granSel = root.querySelector('#report-granularity');
+    const syncPeriodInputs = () => {
+      const g = granSel?.value || 'month';
+      const w = root.querySelector('#report-period-week');
+      const m = root.querySelector('#report-period');
+      const y = root.querySelector('#report-period-year');
+      if (w) w.style.display = g === 'week' ? '' : 'none';
+      if (m) m.style.display = g === 'month' ? '' : 'none';
+      if (y) y.style.display = g === 'year' ? '' : 'none';
+    };
+    granSel?.addEventListener('change', syncPeriodInputs);
+    syncPeriodInputs();
 
     root.querySelector('#btn-print')?.addEventListener('click', () => this.print());
     root.querySelector('#btn-email')?.addEventListener('click', () => this.email());

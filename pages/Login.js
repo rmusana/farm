@@ -13,7 +13,7 @@ export default {
         <div class="login-card card">
           <div class="login-brand">
             <div class="sidebar-brand-mark" style="width:48px;height:48px;font-size:18px">RM</div>
-            <h1>RMUSANA</h1>
+            <h1>LUK54</h1>
             <p class="u-text-secondary u-text-sm">Poultry Management & Investment Platform</p>
           </div>
 
@@ -46,7 +46,7 @@ export default {
           </button>
 
           <p class="login-footnote u-text-xs u-text-muted">
-            Access is restricted to authorised Investment Partner and Operations Manager accounts.
+            Access is restricted to authorised Investment Partner and Operating Partner accounts.
           </p>
         </div>
       </div>

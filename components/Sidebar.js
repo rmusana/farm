@@ -36,8 +36,8 @@ export function renderSidebar(root) {
     root.innerHTML = `
       <aside class="sidebar ${collapsed ? 'collapsed' : ''}" id="sidebar" aria-label="Main navigation">
         <div class="sidebar-brand">
-          <div class="sidebar-brand-mark">RM</div>
-          <span class="sidebar-brand-text">RMUSANA</span>
+          <div class="sidebar-brand-mark">L5</div>
+          <span class="sidebar-brand-text">LUK54</span>
         </div>
         <nav class="sidebar-nav">
           ${filtered.map((sec) => `

@@ -12,8 +12,9 @@ import api from '../js/api.js';
 const SECTIONS = [
   { id: 'summary', label: 'Overview' },
   { id: 'capital', label: 'Capital' },
+  { id: 'disbursed', label: 'Capital vs Disbursed' },
+  { id: 'revenue', label: 'Revenue' },
   { id: 'expenses', label: 'Expenses' },
-  { id: 'budget', label: 'Budget vs Actual' },
   { id: 'allocation', label: 'Revenue Allocation' },
   { id: 'profit', label: 'Profit Distribution' },
   { id: 'cashflow', label: 'Cash Flow' },
@@ -224,7 +225,8 @@ export default {
       summary: () => this.secSummary(content, actions),
       capital: () => this.secCapital(content, actions),
       expenses: () => this.secExpenses(content, actions),
-      budget: () => this.secBudget(content, actions),
+      disbursed: () => this.secDisbursed(content, actions),
+      revenue: () => this.secRevenue(content, actions),
       allocation: () => this.secAllocation(content, actions),
       profit: () => this.secProfit(content, actions),
       cashflow: () => this.secCashflow(content, actions),
@@ -368,35 +370,110 @@ export default {
     });
   },
 
-  async secBudget(content, actions) {
-    actions.innerHTML = `<button class="btn btn-secondary btn-sm" id="btn-seed-budget">Seed from budget doc</button>`;
-    actions.querySelector('#btn-seed-budget')?.addEventListener('click', async () => {
-      try { await finApi('budget', 'seed'); toastSuccess('Budget lines loaded'); this.renderSection(); }
-      catch (err) { toastError(err.message); }
-    });
+  async secDisbursed(content, actions) {
+    actions.innerHTML = '';
     try {
-      const res = await finApi('budget', 'status');
-      const d = res.data || {};
-      const lines = d.lines || [];
+      const [capRes, expRes] = await Promise.all([
+        finApi('capital', 'list'),
+        finApi('expenses', 'list')
+      ]);
+      const capital = capRes.data || [];
+      const expenses = expRes.data || [];
+      const totalCapital = capital.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0);
+      const totalDisbursed = expenses.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0);
+      const remaining = totalCapital - totalDisbursed;
+      content.innerHTML = `
+        <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-4)">
+          Capital contributed by the Investment Partner versus amounts disbursed (spent) on the flock.
+        </p>
+        <div class="kpi-grid" style="margin-bottom:var(--space-4)">
+          <div class="card kpi-card"><div class="kpi-label">Capital contributed</div><div class="kpi-value">${formatUGX(totalCapital)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Amount disbursed</div><div class="kpi-value">${formatUGX(totalDisbursed)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Remaining / unspent</div><div class="kpi-value">${formatUGX(remaining)}</div>
+            <div class="kpi-insight">${totalCapital ? Math.round((totalDisbursed / totalCapital) * 100) + '% disbursed' : ''}</div></div>
+        </div>
+        <h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Capital contributions</h3>
+        <div id="cap-table" style="margin-bottom:var(--space-5)"></div>
+        <h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Disbursements (expenses)</h3>
+        <div id="disb-table"></div>`;
+      renderDataTable(content.querySelector('#cap-table'), {
+        columns: [
+          { key: 'Date', label: 'Date', accessor: (r) => r.Date || r.date },
+          { key: 'Amount', label: 'Amount', accessor: (r) => formatUGX(r.Amount ?? r.amount), align: 'right' },
+          { key: 'Purpose', label: 'Purpose', accessor: (r) => r.Purpose || r.purpose || '—' },
+          { key: 'Reference', label: 'Reference', accessor: (r) => r.Reference || r.reference || '—' }
+        ],
+        rows: capital,
+        emptyMessage: 'No capital contributions yet.'
+      });
+      renderDataTable(content.querySelector('#disb-table'), {
+        columns: [
+          { key: 'Date', label: 'Date', accessor: (r) => r.Date || r.date },
+          { key: 'Category', label: 'Category', accessor: (r) => r.Category || r.category },
+          { key: 'Amount', label: 'Amount', accessor: (r) => formatUGX(r.Amount ?? r.amount), align: 'right' },
+          { key: 'Supplier', label: 'Supplier', accessor: (r) => r.Supplier || r.supplier || '—' }
+        ],
+        rows: expenses,
+        emptyMessage: 'No disbursements recorded yet.'
+      });
+    } catch (err) {
+      content.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
+    }
+  },
+
+  async secRevenue(content, actions) {
+    actions.innerHTML = '';
+    try {
+      let sales = [];
+      if (window.RMUSANA_API_URL) {
+        const res = await api.request('/operations', { body: { module: 'operations', resource: 'sales', action: 'list', projectId: 'LUK54' } });
+        sales = res.data || [];
+      } else {
+        try { sales = JSON.parse(localStorage.getItem('rmusana_ops_sales') || '[]'); } catch { sales = []; }
+      }
+      const total = sales.reduce((s, r) => s + Number(r.TotalRevenue ?? r.totalRevenue || 0), 0);
+      const trays = sales.reduce((s, r) => {
+        const t = Number(r.QuantityTrays ?? r.quantityTrays);
+        if (t) return s + t;
+        return s + (Number(r.QuantityEggs ?? r.quantityEggs || 0) / 30);
+      }, 0);
+      const days = new Set(sales.map((r) => String(r.Date || r.date || '').slice(0, 10)).filter(Boolean)).size;
+      const byCat = {};
+      const byPay = {};
+      sales.forEach((r) => {
+        const c = r.SaleCategory || r.saleCategory || 'Eggs';
+        byCat[c] = (byCat[c] || 0) + Number(r.TotalRevenue ?? r.totalRevenue || 0);
+        const p = r.PaymentStatus || r.paymentStatus || '—';
+        byPay[p] = (byPay[p] || 0) + Number(r.TotalRevenue ?? r.totalRevenue || 0);
+      });
       content.innerHTML = `
         <div class="kpi-grid" style="margin-bottom:var(--space-4)">
-          <div class="card kpi-card"><div class="kpi-label">Budget total</div><div class="kpi-value">${formatUGX(d.totalBudget)}</div></div>
-          <div class="card kpi-card"><div class="kpi-label">Actual spend</div><div class="kpi-value">${formatUGX(d.totalActual)}</div></div>
-          <div class="card kpi-card"><div class="kpi-label">Variance</div><div class="kpi-value">${formatUGX(d.variance)}</div>
-            <div class="kpi-insight">${d.variancePct != null ? d.variancePct + '%' : ''}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Total revenue</div><div class="kpi-value">${formatUGX(total)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Trays sold</div><div class="kpi-value">${formatNumber(trays, 1)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Days with sales</div><div class="kpi-value">${days}</div></div>
         </div>
-        <div id="budget-table"></div>`;
-      renderDataTable(content.querySelector('#budget-table'), {
+        <div class="grid-2" style="margin-bottom:var(--space-4)">
+          <div class="card" style="padding:var(--space-4)">
+            <h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-2)">By sale type</h3>
+            ${Object.keys(byCat).length ? Object.entries(byCat).map(([k, v]) => `<div class="u-text-sm" style="display:flex;justify-content:space-between"><span>${k}</span><strong>${formatUGX(v)}</strong></div>`).join('') : '<p class="u-text-muted u-text-sm">No data</p>'}
+          </div>
+          <div class="card" style="padding:var(--space-4)">
+            <h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-2)">By payment</h3>
+            ${Object.keys(byPay).length ? Object.entries(byPay).map(([k, v]) => `<div class="u-text-sm" style="display:flex;justify-content:space-between"><span>${k}</span><strong>${formatUGX(v)}</strong></div>`).join('') : '<p class="u-text-muted u-text-sm">No data</p>'}
+          </div>
+        </div>
+        <div id="rev-table"></div>`;
+      renderDataTable(content.querySelector('#rev-table'), {
         columns: [
-          { key: 'Category', label: 'Category' },
-          { key: 'SubItem', label: 'Item' },
-          { key: 'BudgetTotal', label: 'Budget', accessor: (r) => formatUGX(r.BudgetTotal), align: 'right' },
-          { key: 'ActualTotal', label: 'Actual', accessor: (r) => formatUGX(r.ActualTotal), align: 'right' },
-          { key: 'Variance', label: 'Variance', align: 'right',
-            accessor: (r) => formatUGX((Number(r.ActualTotal) || 0) - (Number(r.BudgetTotal) || 0)) }
+          { key: 'Date', label: 'Date', accessor: (r) => r.Date || r.date },
+          { key: 'SaleCategory', label: 'Type', accessor: (r) => r.SaleCategory || r.saleCategory || 'Eggs' },
+          { key: 'EggType', label: 'Egg type', accessor: (r) => r.EggType || r.eggType || '—' },
+          { key: 'QuantityTrays', label: 'Trays', accessor: (r) => formatNumber(r.QuantityTrays ?? r.quantityTrays ?? ((r.QuantityEggs || 0) / 30), 1) },
+          { key: 'TotalRevenue', label: 'Revenue', accessor: (r) => formatUGX(r.TotalRevenue ?? r.totalRevenue), align: 'right' },
+          { key: 'PaymentStatus', label: 'Payment', accessor: (r) => r.PaymentStatus || r.paymentStatus || '—' }
         ],
-        rows: lines,
-        emptyMessage: 'No budget lines. Click “Seed from budget doc” to load the 2,500-bird budget.'
+        rows: sales,
+        emptyMessage: 'No sales yet. Record sales under Operations → Sales.'
       });
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;

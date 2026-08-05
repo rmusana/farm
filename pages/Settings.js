@@ -11,8 +11,10 @@ import api from '../js/api.js';
 
 const SECTIONS = [
   { id: 'project', label: 'Project', icon: 'building-2' },
+  { id: 'contacts', label: 'Contacts', icon: 'phone' },
   { id: 'users', label: 'Users & Roles', icon: 'users' },
   { id: 'notifications', label: 'Notifications', icon: 'bell' },
+  { id: 'security', label: 'Security', icon: 'lock' },
   { id: 'system', label: 'System', icon: 'sliders' },
   { id: 'backup', label: 'Backup & Restore', icon: 'database' }
 ];
@@ -32,6 +34,13 @@ function defaults() {
     off_lay_pct: 80,
     off_lay_weeks: 4,
     statement_due_day: 10,
+    // Contact directory – used by Reach out + alert emails
+    investor_name: 'Robert Musana / Moses Odong',
+    investor_emails: 'robert@luk54.com,moses@luk54.com',
+    investor_phone: '',
+    manager_name: 'Jalo Dream Farm',
+    manager_emails: 'joseph@jalodreamfarm.com',
+    manager_phone: '',
     alert_emails: 'robert@luk54.com,moses@luk54.com',
     email_critical: true,
     email_digest: false,
@@ -116,8 +125,10 @@ export default {
     if (!panel) return;
     const map = {
       project: () => this.panelProject(panel),
+      contacts: () => this.panelContacts(panel),
       users: () => this.panelUsers(panel),
       notifications: () => this.panelNotifications(panel),
+      security: () => this.panelSecurity(panel),
       system: () => this.panelSystem(panel),
       backup: () => this.panelBackup(panel)
     };
@@ -179,6 +190,53 @@ export default {
     }
   },
 
+  panelContacts(panel) {
+    const s = this.settings;
+    const canEdit = canApprove();
+    panel.innerHTML = `
+      <h3 style="margin-bottom:var(--space-4)">Contacts</h3>
+      <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-4)">
+        These addresses power the <strong>Reach out</strong> button in the top bar and default alert recipients.
+        Change them anytime for testing or production.
+      </p>
+      <form id="form-contacts">
+        <h4 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Investment Partner</h4>
+        ${field({ name: 'investor_name', label: 'Name(s)', value: s.investor_name || '' })}
+        ${field({ name: 'investor_emails', label: 'Email(s)', value: s.investor_emails || '', hint: 'Comma-separated' })}
+        ${field({ name: 'investor_phone', label: 'Phone / WhatsApp', value: s.investor_phone || '', hint: 'Optional, with country code' })}
+        <h4 class="u-text-sm u-font-semibold" style="margin:var(--space-5) 0 var(--space-3)">Operating Partner</h4>
+        ${field({ name: 'manager_name', label: 'Name', value: s.manager_name || '' })}
+        ${field({ name: 'manager_emails', label: 'Email(s)', value: s.manager_emails || '', hint: 'Comma-separated' })}
+        ${field({ name: 'manager_phone', label: 'Phone / WhatsApp', value: s.manager_phone || '', hint: 'Optional, with country code' })}
+        ${canEdit ? `<button type="submit" class="btn btn-primary">Save contacts</button>` : '<p class="u-text-xs u-text-muted">Only Investor / Administrator can edit.</p>'}
+      </form>
+    `;
+    if (canEdit) {
+      panel.querySelector('#form-contacts')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = serializeForm(e.target);
+        const partial = {
+          investor_name: data.investor_name,
+          investor_emails: data.investor_emails,
+          investor_phone: data.investor_phone,
+          manager_name: data.manager_name,
+          manager_emails: data.manager_emails,
+          manager_phone: data.manager_phone
+        };
+        if (!this.settings.alert_emails || this.settings.alert_emails === defaults().alert_emails) {
+          partial.alert_emails = data.investor_emails;
+        }
+        try {
+          await saveSettings(partial);
+          this.settings = { ...this.settings, ...partial };
+          toastSuccess('Contacts saved');
+        } catch (err) {
+          toastError(err.message || 'Save failed');
+        }
+      });
+    }
+  },
+
   async panelUsers(panel) {
     panel.innerHTML = `<div class="skeleton" style="height:120px"></div>`;
     let users = [];
@@ -190,7 +248,7 @@ export default {
         users = [
           { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Robert Musana', Role: 'Investor', Active: true },
           { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Moses Odong', Role: 'Investor', Active: true },
-          { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Joseph Sango', Role: 'OperationsManager', Active: true },
+          { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Jalo Dream Farm', Role: 'OperationsManager', Active: true },
           { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'System Admin', Role: 'Administrator', Active: true }
         ];
       }
@@ -206,7 +264,7 @@ export default {
       </div>
       <div id="users-table"></div>
       <p class="u-text-xs u-text-muted" style="margin-top:var(--space-3)">
-        Roles: Investor / Administrator (full access) · OperationsManager (ops write) · Viewer (read-only dashboards & reports)
+        Roles: Investor / Administrator (full access) · Operating Partner (ops write) · Viewer (read-only)
       </p>
     `;
 
@@ -257,8 +315,11 @@ export default {
     const canEdit = canApprove();
     panel.innerHTML = `
       <h3 style="margin-bottom:var(--space-4)">Notification settings</h3>
+      <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-4)">
+        Use your own email here while testing. Critical alerts are sent to these addresses via Gmail (Apps Script).
+      </p>
       <form id="form-notif">
-        ${field({ name: 'alert_emails', label: 'Alert email recipients', value: s.alert_emails || '', hint: 'Comma-separated' })}
+        ${field({ name: 'alert_emails', label: 'Alert email recipients', value: s.alert_emails || '', hint: 'Comma-separated — put your personal email to test' })}
         <div class="form-group">
           <label class="form-label" style="display:flex;align-items:center;gap:var(--space-2)">
             <input type="checkbox" name="email_critical" ${s.email_critical !== false ? 'checked' : ''} />
@@ -296,6 +357,56 @@ export default {
     }
   },
 
+
+  panelSecurity(panel) {
+    panel.innerHTML = `
+      <h3 style="margin-bottom:var(--space-4)">Change password</h3>
+      <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-4)">
+        Update the password for your signed-in account. Minimum 6 characters.
+      </p>
+      <form id="form-password">
+        ${field({ name: 'currentPassword', label: 'Current password', type: 'password', required: true })}
+        ${field({ name: 'newPassword', label: 'New password', type: 'password', required: true })}
+        ${field({ name: 'confirmPassword', label: 'Confirm new password', type: 'password', required: true })}
+        <button type="submit" class="btn btn-primary">Update password</button>
+      </form>
+    `;
+    panel.querySelector('#form-password')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = serializeForm(e.target);
+      if (!data.currentPassword || !data.newPassword) {
+        toastError('Fill all fields');
+        return;
+      }
+      if (data.newPassword !== data.confirmPassword) {
+        toastError('New passwords do not match');
+        return;
+      }
+      if (String(data.newPassword).length < 6) {
+        toastError('Password must be at least 6 characters');
+        return;
+      }
+      try {
+        if (window.RMUSANA_API_URL) {
+          await api.request('/auth', {
+            body: {
+              module: 'auth',
+              action: 'changePassword',
+              currentPassword: data.currentPassword,
+              newPassword: data.newPassword
+            }
+          });
+        } else {
+          toastError('Connect the API to change password on the server');
+          return;
+        }
+        toastSuccess('Password updated');
+        e.target.reset();
+      } catch (err) {
+        toastError(err.message || 'Password change failed');
+      }
+    });
+  },
   panelSystem(panel) {
     const theme = getState('theme') || 'light';
     panel.innerHTML = `
