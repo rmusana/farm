@@ -17,6 +17,7 @@ const TABS = [
   { id: 'health', label: 'Health & Vaccination' },
   { id: 'mortality', label: 'Mortality' },
   { id: 'inventory', label: 'Inventory' },
+  { id: 'workers', label: 'Workers' },
   { id: 'notes', label: 'Staff Notes' }
 ];
 
@@ -42,10 +43,11 @@ const PAYMENT_STATUSES = ['Cash', 'Cheque', 'Debt'];
 const SALE_CATEGORIES = ['Eggs', 'Litter', 'Others'];
 const TRAY_SIZE = 30;
 
-const FLOCK_SECTIONS = [
-  { id: 'Combined', label: 'Combined (2,500)' },
-  { id: 'A', label: 'Section A (1,500)' },
-  { id: 'B', label: 'Section B (1,000)' }
+const DEFAULT_SECTIONS = [
+  { sectionId: 'A', label: 'Section A — Young', birdCount: 0 },
+  { sectionId: 'B', label: 'Section B — Medium', birdCount: 0 },
+  { sectionId: 'C', label: 'Section C — Grown', birdCount: 0 },
+  { sectionId: 'Others', label: 'Others', birdCount: 0 }
 ];
 
 const MEDS = [
@@ -401,6 +403,7 @@ export default {
       health: function () { return this.tabHealth(content, actions); }.bind(this),
       mortality: function () { return this.tabMortality(content, actions); }.bind(this),
       inventory: function () { return this.tabInventory(content, actions); }.bind(this),
+      workers: function () { return this.tabWorkers(content, actions); }.bind(this),
       notes: function () { return this.tabNotes(content, actions); }.bind(this)
     };
     const fn = map[this.activeTab] || map.daily;
@@ -466,7 +469,21 @@ export default {
             key: 'Feed',
             label: 'Feed (kg)',
             accessor: function (r) {
+              var issued = r.FeedIssuedKg ?? r.feedIssuedKg;
+              if (issued != null && issued !== '') return formatNumber(issued, 1);
               return formatNumber(feedTotalKg(r), 1);
+            }
+          },
+          {
+            key: 'ProductionPct',
+            label: 'Prod %',
+            accessor: function (r) {
+              var pct = r.ProductionPct ?? r.productionPct;
+              if (pct !== '' && pct != null && Number(pct) > 0) return formatNumber(pct, 1) + '%';
+              var birds = Number((r.OpeningBirds ?? r.openingBirds) || 0);
+              var eggs = Number((r.EggsCollected ?? r.eggsCollected) || 0);
+              if (eggs > 0 && birds > 0) return formatNumber((eggs / birds) * 100, 1) + '%';
+              return '—';
             }
           }
         ],
@@ -501,32 +518,37 @@ export default {
     }
   },
 
-  formDaily() {
-    const sectionOpts = FLOCK_SECTIONS.map(function (s) {
-      return s.id + ' — ' + s.label;
-    });
-    let feedFields = '';
-    FEED_PRODUCTS.forEach(function (p) {
-      feedFields += field({
-        name: 'feed' + p.key + 'Kg',
-        label: p.label,
-        type: 'number',
-        value: '0'
-      });
+  async formDaily() {
+    var sections = DEFAULT_SECTIONS.slice();
+    try {
+      var secRes = await apiOrLocal('sections', 'list');
+      if (secRes.data && secRes.data.length) {
+        sections = secRes.data.map(function (r) {
+          return {
+            sectionId: r.SectionID || r.sectionId,
+            label: r.Label || r.label,
+            birdCount: Number(r.BirdCount || r.birdCount || 0)
+          };
+        });
+      }
+    } catch (e) {}
+
+    var sectionOpts = sections.map(function (s) {
+      return s.sectionId + ' — ' + s.label + ' (' + s.birdCount + ')';
     });
 
-    const html =
+    var html =
       '<form id="form-daily">' +
       field({ name: 'date', label: 'Date', type: 'date', required: true, value: today() }) +
       field({
         name: 'section',
-        label: 'Section',
+        label: 'Batch / section',
         type: 'select',
         options: sectionOpts,
         value: sectionOpts[0]
       }) +
       '<div class="form-row">' +
-      field({ name: 'openingBirds', label: 'Opening birds', type: 'number', required: true, value: '2500' }) +
+      field({ name: 'openingBirds', label: 'Opening birds', type: 'number', required: true, value: String(sections[0] ? sections[0].birdCount : 0) }) +
       field({ name: 'mortality', label: 'Mortality', type: 'number', value: '0' }) +
       field({
         name: 'closingBirds',
@@ -540,9 +562,16 @@ export default {
       field({ name: 'breakages', label: 'Breakages (eggs)', type: 'number', value: '0' }) +
       field({ name: 'eggsLost', label: 'Lost (exchange)', type: 'number', value: '0' }) +
       '</div>' +
-      '<p class="u-font-semibold u-text-sm" style="margin:var(--space-2) 0">Feed issued (kg)</p>' +
-      '<div class="form-row">' +
-      feedFields +
+      field({
+        name: 'feedIssuedKg',
+        label: 'Feed issued (kg)',
+        type: 'number',
+        value: '0',
+        hint: 'Total mixed feed for this day only'
+      }) +
+      '<div class="card" style="padding:var(--space-3);margin:var(--space-3) 0" id="prod-pct-box">' +
+      '<span class="u-text-sm u-text-secondary">Egg production % (this section): </span>' +
+      '<strong id="prod-pct-val">—</strong>' +
       '</div>' +
       field({ name: 'notes', label: 'Notes / observations', type: 'textarea' }) +
       '</form>';
@@ -556,33 +585,55 @@ export default {
         '<button class="btn btn-primary" id="save-daily">Save</button>'
     });
 
+    function updateProdPct() {
+      var form = document.getElementById('form-daily');
+      if (!form) return;
+      var birds = Number(form.openingBirds && form.openingBirds.value) || 0;
+      var trays = Number(form.eggsTrays && form.eggsTrays.value) || 0;
+      var eggs = trays * 30;
+      var el = document.getElementById('prod-pct-val');
+      if (!el) return;
+      if (eggs > 0 && birds > 0) {
+        el.textContent = (Math.round((eggs / birds) * 1000) / 10) + '%';
+      } else {
+        el.textContent = '—';
+      }
+    }
+    var formEl = document.getElementById('form-daily');
+    ['openingBirds', 'eggsTrays'].forEach(function (n) {
+      var input = formEl.querySelector('[name="' + n + '"]');
+      if (input) input.addEventListener('input', updateProdPct);
+    });
+    var secSelect = formEl.querySelector('[name="section"]');
+    if (secSelect) {
+      secSelect.addEventListener('change', function () {
+        var id = String(secSelect.value || '').split('—')[0].trim();
+        var found = sections.find(function (s) { return s.sectionId === id; });
+        if (found && formEl.openingBirds) formEl.openingBirds.value = found.birdCount;
+        updateProdPct();
+      });
+    }
+    updateProdPct();
+
     document.getElementById('save-daily').addEventListener('click', async function () {
       const form = document.getElementById('form-daily');
       if (!validateRequired(form, ['date', 'openingBirds'])) return;
       const data = serializeForm(form);
-      const sectionRaw = String(data.section || 'Combined').split('—')[0].trim();
+      const sectionRaw = String(data.section || 'A').split('—')[0].trim();
+      const trays = Number(data.eggsTrays) || 0;
+      const eggs = trays * 30;
+      const birds = Number(data.openingBirds) || 0;
       const payload = {
         date: data.date,
         section: sectionRaw,
-        openingBirds: data.openingBirds,
+        openingBirds: birds,
         mortality: data.mortality || 0,
         closingBirds: data.closingBirds || undefined,
-        eggsTrays: data.eggsTrays || 0,
-        eggsCollected: (Number(data.eggsTrays) || 0) * 30, // backend still stores egg count
+        eggsTrays: trays,
+        eggsCollected: eggs,
         breakages: data.breakages || 0,
         eggsLost: data.eggsLost || 0,
-        feedBrandKg: data.feedBrandKg || 0,
-        feedConcentrateKg: data.feedConcentrateKg || 0,
-        feedHendrixKg: data.feedConcentrateKg || 0,
-        feedLimePowderKg: data.feedLimePowderKg || 0,
-        feedLimestoneKg: data.feedLimestoneKg || 0,
-        feedLimeKg:
-          Number(data.feedLimePowderKg || 0) + Number(data.feedLimestoneKg || 0) || 0,
-        feedSoyaKg: data.feedSoyaKg || 0,
-        feedSunflowerKg: data.feedSunflowerKg || 0,
-        feedBrokenKg: data.feedBrokenKg || 0,
-        feedMaizeKg: data.feedMaizeKg || 0,
-        feedOthersKg: data.feedOthersKg || 0,
+        feedIssuedKg: data.feedIssuedKg || 0,
         notes: data.notes || ''
       };
       try {
@@ -601,6 +652,7 @@ export default {
   async tabFlock(content, actions) {
     if (this.writable) {
       actions.innerHTML =
+        '<button class="btn btn-secondary btn-sm" id="btn-save-sections">Save sections</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-flock-event">' +
         '<i data-lucide="plus" style="width:14px;height:14px"></i> Flock event</button>';
       actions.querySelector('#btn-flock-event').addEventListener('click', function () {
@@ -608,24 +660,78 @@ export default {
       }.bind(this));
     }
     try {
+      const secRes = await apiOrLocal('sections', 'list');
       const statusRes = await apiOrLocal('flock', 'status');
       const listRes = await apiOrLocal('flock', 'list');
+      let sections = secRes.data || [];
+      if (!sections.length) {
+        sections = DEFAULT_SECTIONS.map(function (s) {
+          return { SectionID: s.sectionId, Label: s.label, BirdCount: s.birdCount };
+        });
+      }
+      const total = secRes.totalBirds != null
+        ? secRes.totalBirds
+        : sections.reduce(function (s, r) { return s + Number(r.BirdCount || r.birdCount || 0); }, 0);
       const st = statusRes.data || {};
       const rows = listRes.data || [];
-      content.innerHTML =
-        '<div class="kpi-grid" style="margin-bottom:var(--space-4)">' +
-        '<div class="card kpi-card"><div class="kpi-label">Current birds</div><div class="kpi-value">' +
-        formatNumber(st.currentBirds) +
-        '</div></div>' +
-        '<div class="card kpi-card"><div class="kpi-label">Planned</div><div class="kpi-value">' +
-        formatNumber(st.plannedBirds || 2500) +
-        '</div></div>' +
-        '<div class="card kpi-card"><div class="kpi-label">Section A</div><div class="kpi-value">1,500</div>' +
-        '<div class="kpi-insight">Managed together with B</div></div>' +
-        '<div class="card kpi-card"><div class="kpi-label">Section B</div><div class="kpi-value">1,000</div>' +
-        '<div class="kpi-insight">Reports combine A + B</div></div>' +
-        '</div>' +
+
+      let secHtml = '<div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">' +
+        '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Batch / sections (editable)</h3>' +
+        '<p class="u-text-xs u-text-muted" style="margin-bottom:var(--space-3)">Set bird counts per section. Total drives the live flock count.</p>' +
+        '<div id="sections-editor">';
+      sections.forEach(function (s, i) {
+        const id = s.SectionID || s.sectionId || ('S' + i);
+        const label = s.Label || s.label || id;
+        const count = Number((s.BirdCount ?? s.birdCount) || 0);
+        secHtml +=
+          '<div class="form-row" style="margin-bottom:var(--space-2)" data-sec-id="' + id + '">' +
+          '<div class="form-group"><label class="form-label">Label</label>' +
+          '<input class="form-input sec-label" value="' + String(label).replace(/"/g, '&quot;') + '" /></div>' +
+          '<div class="form-group"><label class="form-label">Birds</label>' +
+          '<input class="form-input sec-count" type="number" value="' + count + '" /></div>' +
+          '</div>';
+      });
+      secHtml += '</div>' +
+        '<div class="kpi-grid" style="margin-top:var(--space-3)">' +
+        '<div class="card kpi-card"><div class="kpi-label">Total birds (all sections)</div>' +
+        '<div class="kpi-value" id="sec-total-display">' + formatNumber(total) + '</div></div></div></div>';
+
+      content.innerHTML = secHtml +
+        '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Flock events</h3>' +
         '<div id="flock-table"></div>';
+
+      function recalcTotal() {
+        var sum = 0;
+        content.querySelectorAll('.sec-count').forEach(function (inp) {
+          sum += Number(inp.value) || 0;
+        });
+        var el = content.querySelector('#sec-total-display');
+        if (el) el.textContent = formatNumber(sum);
+      }
+      content.querySelectorAll('.sec-count').forEach(function (inp) {
+        inp.addEventListener('input', recalcTotal);
+      });
+
+      if (this.writable) {
+        actions.querySelector('#btn-save-sections').addEventListener('click', async function () {
+          var payload = [];
+          content.querySelectorAll('[data-sec-id]').forEach(function (row) {
+            payload.push({
+              sectionId: row.getAttribute('data-sec-id'),
+              label: row.querySelector('.sec-label').value,
+              birdCount: Number(row.querySelector('.sec-count').value) || 0
+            });
+          });
+          try {
+            const res = await apiOrLocal('sections', 'save', { sections: payload });
+            toastSuccess('Sections saved — total ' + formatNumber(res.totalBirds != null ? res.totalBirds : 0) + ' birds');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Save failed');
+          }
+        }.bind(this));
+      }
+
       renderDataTable(content.querySelector('#flock-table'), {
         columns: [
           { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
@@ -717,10 +823,14 @@ export default {
   async tabFeed(content, actions) {
     if (this.writable) {
       actions.innerHTML =
+        '<button class="btn btn-secondary btn-sm" id="btn-weekly-mix">Weekly mix</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-feed-purchase">' +
         '<i data-lucide="plus" style="width:14px;height:14px"></i> Feed purchase</button>';
       actions.querySelector('#btn-feed-purchase').addEventListener('click', function () {
         this.formFeedPurchase();
+      }.bind(this));
+      actions.querySelector('#btn-weekly-mix').addEventListener('click', function () {
+        this.formWeeklyMix();
       }.bind(this));
     }
     try {
@@ -1185,7 +1295,17 @@ export default {
     }
   },
 
-  formHealth() {
+  async formHealth() {
+    var types = ['Vaccination', 'Medication', 'Treatment', 'Other'];
+    var products = VACCINES.concat(MEDS);
+    try {
+      var opt = await apiOrLocal('health', 'options');
+      if (opt.data) {
+        if (opt.data.types && opt.data.types.length) types = opt.data.types;
+        if (opt.data.products && opt.data.products.length) products = opt.data.products;
+      }
+    } catch (e) {}
+
     const html =
       '<form id="form-health">' +
       field({ name: 'date', label: 'Date', type: 'date', required: true, value: today() }) +
@@ -1194,14 +1314,24 @@ export default {
         label: 'Type',
         type: 'select',
         required: true,
-        options: ['Vaccination', 'Medication', 'Treatment', 'Other']
+        options: types.concat(['— Add new type —'])
+      }) +
+      field({
+        name: 'customType',
+        label: 'New type (if adding)',
+        hint: 'Only fill if you chose Add new type'
       }) +
       field({
         name: 'product',
         label: 'Product',
         type: 'select',
         required: true,
-        options: VACCINES.concat(MEDS)
+        options: products.concat(['— Add new product —'])
+      }) +
+      field({
+        name: 'customProduct',
+        label: 'New product (if adding)',
+        hint: 'Only fill if you chose Add new product'
       }) +
       field({ name: 'week', label: 'Week', type: 'number' }) +
       field({ name: 'notes', label: 'Notes', type: 'textarea' }) +
@@ -1215,9 +1345,29 @@ export default {
     });
     document.getElementById('save-health').addEventListener('click', async function () {
       const form = document.getElementById('form-health');
-      if (!validateRequired(form, ['date', 'type', 'product'])) return;
+      if (!validateRequired(form, ['date'])) return;
+      const data = serializeForm(form);
+      let type = data.type;
+      let product = data.product;
+      if (type && type.indexOf('Add new type') >= 0) {
+        type = (data.customType || '').trim();
+        if (!type) { toastError('Enter the new type name'); return; }
+        try { await apiOrLocal('health', 'addOption', { kind: 'Type', value: type }); } catch (e) {}
+      }
+      if (product && product.indexOf('Add new product') >= 0) {
+        product = (data.customProduct || '').trim();
+        if (!product) { toastError('Enter the new product name'); return; }
+        try { await apiOrLocal('health', 'addOption', { kind: 'Product', value: product }); } catch (e) {}
+      }
+      if (!type || !product) { toastError('Type and product required'); return; }
       try {
-        await apiOrLocal('health', 'create', serializeForm(form));
+        await apiOrLocal('health', 'create', {
+          date: data.date,
+          type: type,
+          product: product,
+          week: data.week,
+          notes: data.notes
+        });
         toastSuccess('Treatment logged');
         closeModal();
         this.renderTab();
@@ -1420,6 +1570,156 @@ export default {
       try {
         await apiOrLocal('notes', 'create', serializeForm(form));
         toastSuccess('Note saved');
+        closeModal();
+        this.renderTab();
+      } catch (err) {
+        toastError(err.message || 'Save failed');
+      }
+    }.bind(this));
+  },
+
+
+  async tabWorkers(content, actions) {
+    if (this.writable) {
+      actions.innerHTML =
+        '<button class="btn btn-primary btn-sm" id="btn-worker">' +
+        '<i data-lucide="plus" style="width:14px;height:14px"></i> Add worker</button>';
+      actions.querySelector('#btn-worker').addEventListener('click', function () {
+        this.formWorker();
+      }.bind(this));
+    }
+    try {
+      const res = await apiOrLocal('workers', 'list');
+      const rows = res.data || [];
+      content.innerHTML = '<div id="workers-table"></div>';
+      renderDataTable(content.querySelector('#workers-table'), {
+        columns: [
+          { key: 'Name', label: 'Name', accessor: function (r) { return r.Name || r.name; } },
+          {
+            key: 'Payroll',
+            label: 'Payroll',
+            accessor: function (r) { return formatUGX(r.Payroll ?? r.payroll); },
+            align: 'right'
+          },
+          {
+            key: 'Bonus',
+            label: 'Bonus',
+            accessor: function (r) { return formatUGX(r.Bonus ?? r.bonus); },
+            align: 'right'
+          },
+          {
+            key: 'Advance',
+            label: 'Advance',
+            accessor: function (r) { return formatUGX(r.Advance ?? r.advance); },
+            align: 'right'
+          },
+          {
+            key: 'Notes',
+            label: 'Notes',
+            accessor: function (r) { return r.Notes || r.notes || '—'; }
+          }
+        ],
+        rows: rows,
+        actions: this.writable
+          ? [
+              { id: 'edit', label: 'Edit' },
+              { id: 'delete', label: 'Delete', danger: true, icon: 'trash-2' }
+            ]
+          : null,
+        onAction: async function (action, row) {
+          const id = recordId(row, ['WorkerID', 'workerId', 'id']);
+          if (action === 'edit') {
+            this.formWorker(row);
+            return;
+          }
+          if (action !== 'delete') return;
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          const ok = await confirmDialog({
+            title: 'Delete worker',
+            message: 'Remove this worker record?',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await deleteRecord('workers', id);
+            toastSuccess('Worker deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
+        emptyMessage: 'No workers yet. Add payroll, bonus and advance here.'
+      });
+    } catch (err) {
+      content.innerHTML =
+        '<div class="empty-state"><p class="empty-state-desc">' + (err.message || 'Failed') + '</p></div>';
+    }
+  },
+
+  formWorker(existing) {
+    existing = existing || null;
+    const html =
+      '<form id="form-worker">' +
+      field({
+        name: 'name',
+        label: 'Worker name',
+        required: true,
+        value: existing ? (existing.Name || existing.name || '') : ''
+      }) +
+      '<div class="form-row">' +
+      field({
+        name: 'payroll',
+        label: 'Payroll (UGX)',
+        type: 'number',
+        value: existing ? String(existing.Payroll ?? existing.payroll ?? 0) : '0'
+      }) +
+      field({
+        name: 'bonus',
+        label: 'Bonus (UGX)',
+        type: 'number',
+        value: existing ? String(existing.Bonus ?? existing.bonus ?? 0) : '0'
+      }) +
+      field({
+        name: 'advance',
+        label: 'Advance (UGX)',
+        type: 'number',
+        value: existing ? String(existing.Advance ?? existing.advance ?? 0) : '0'
+      }) +
+      '</div>' +
+      field({
+        name: 'notes',
+        label: 'Notes',
+        type: 'textarea',
+        value: existing ? (existing.Notes || existing.notes || '') : ''
+      }) +
+      '</form>';
+    openModal({
+      title: existing ? 'Edit worker' : 'Add worker',
+      content: html,
+      footer:
+        '<button class="btn btn-secondary" data-modal-close>Cancel</button>' +
+        '<button class="btn btn-primary" id="save-worker">Save</button>'
+    });
+    document.getElementById('save-worker').addEventListener('click', async function () {
+      const form = document.getElementById('form-worker');
+      if (!validateRequired(form, ['name'])) return;
+      const data = serializeForm(form);
+      try {
+        if (existing) {
+          const id = recordId(existing, ['WorkerID', 'workerId', 'id']);
+          await apiOrLocal('workers', 'update', {
+            id: id,
+            name: data.name,
+            payroll: data.payroll,
+            bonus: data.bonus,
+            advance: data.advance,
+            notes: data.notes
+          });
+        } else {
+          await apiOrLocal('workers', 'create', data);
+        }
+        toastSuccess('Worker saved');
         closeModal();
         this.renderTab();
       } catch (err) {
