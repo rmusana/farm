@@ -8,6 +8,7 @@ import { formatUGX, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { canWrite } from '../js/auth.js';
 import api from '../js/api.js';
+import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
 
 const TABS = [
   { id: 'daily', label: 'Daily Log' },
@@ -60,7 +61,7 @@ const VACCINES = [
 ];
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return todayEAT();
 }
 
 function localStore(key, value) {
@@ -428,7 +429,7 @@ export default {
       content.innerHTML = '<div id="daily-table"></div>';
       renderDataTable(content.querySelector('#daily-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'Section',
             label: 'Section',
@@ -734,7 +735,7 @@ export default {
 
       renderDataTable(content.querySelector('#flock-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'EventType',
             label: 'Event',
@@ -870,7 +871,7 @@ export default {
       });
       renderDataTable(content.querySelector('#feed-purch'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'Product',
             label: 'Product',
@@ -992,7 +993,7 @@ export default {
         '<div id="sales-table"></div>';
       renderDataTable(content.querySelector('#sales-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'SaleCategory',
             label: 'Type',
@@ -1249,7 +1250,7 @@ export default {
       });
       renderDataTable(content.querySelector('#health-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'Type',
             label: 'Type',
@@ -1386,7 +1387,7 @@ export default {
       content.innerHTML = '<div id="mort-table"></div>';
       renderDataTable(content.querySelector('#mort-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'Mortality',
             label: 'Deaths',
@@ -1503,7 +1504,7 @@ export default {
       content.innerHTML = '<div id="notes-table"></div>';
       renderDataTable(content.querySelector('#notes-table'), {
         columns: [
-          { key: 'Date', label: 'Date', accessor: function (r) { return r.Date || r.date; } },
+          { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
           {
             key: 'Category',
             label: 'Category',
