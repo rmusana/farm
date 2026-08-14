@@ -138,6 +138,23 @@ function buildPreviewHtml(type, data, period) {
         <div class="card kpi-card"><div class="kpi-label">Mortality</div><div class="kpi-value">${formatNumber(data.production?.mortality)}</div></div>
       </div>
       <p class="u-text-sm u-text-secondary" style="margin-top:var(--space-4)">${data.healthNote || ''}</p>`;
+  } else if (type === 'weekly_section') {
+    body +=
+      '<p class="u-text-sm u-text-secondary">Week ' + (data.week || '') +
+      ' · Section ' + (data.section || 'all') +
+      ' · ' + (data.weekStartDisplay || data.weekStart || '') +
+      ' – ' + (data.weekEndDisplay || data.weekEnd || '') + '</p>' +
+      '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Days logged</div><div class="kpi-value">' + (data.daysLogged || 0) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Opening birds</div><div class="kpi-value">' + formatNumber(data.openingBirds) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Closing birds</div><div class="kpi-value">' + formatNumber(data.closingBirds) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Eggs (trays)</div><div class="kpi-value">' + formatNumber(data.eggsTrays, 1) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Mortality</div><div class="kpi-value">' + formatNumber(data.totalMortality) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Feed (kg)</div><div class="kpi-value">' + formatNumber(data.totalFeedKg, 1) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Prod %</div><div class="kpi-value">' + (data.productionPct != null ? data.productionPct + '%' : '—') + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Sales revenue</div><div class="kpi-value">' + formatUGX(data.salesRevenue) + '</div></div>' +
+      '</div>' +
+      (data.generatedAt ? '<p class="u-text-xs u-text-muted" style="margin-top:var(--space-3)">Generated ' + data.generatedAt + '</p>' : '');
   } else if (type === 'production') {
     body += `
       <div class="kpi-grid">
@@ -184,6 +201,20 @@ export default {
           <input type="week" class="form-input" id="report-period-week" style="width:auto;height:36px;display:none" />
           <input type="month" class="form-input" id="report-period" value="${currentMonth()}" style="width:auto;height:36px" />
           <input type="number" class="form-input" id="report-period-year" min="2024" max="2100" value="${new Date().getFullYear()}" style="width:100px;height:36px;display:none" />
+          <select class="form-input" id="report-week-num" style="width:auto;height:36px" title="Week of month for batch report">
+            <option value="1">Week 1</option>
+            <option value="2">Week 2</option>
+            <option value="3">Week 3</option>
+            <option value="4">Week 4</option>
+            <option value="5">Week 5</option>
+          </select>
+          <select class="form-input" id="report-section" style="width:auto;height:36px" title="Batch / section">
+            <option value="all">All sections</option>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+            <option value="Others">Others</option>
+          </select>
         </div>
       </div>
 
@@ -241,24 +272,38 @@ export default {
 
   async generate(type) {
     const period = this.root.querySelector('#report-period')?.value || currentMonth();
+    const week = this.root.querySelector('#report-week-num')?.value || '1';
+    const section = this.root.querySelector('#report-section')?.value || 'all';
     const wrap = this.root.querySelector('#report-preview-wrap');
     const preview = this.root.querySelector('#report-preview');
     const title = this.root.querySelector('#preview-title');
     wrap.style.display = 'block';
-    preview.innerHTML = `<div class="skeleton" style="height:160px"></div>`;
-    title.textContent = REPORT_TYPES.find((t) => t.id === type)?.name || type;
+    preview.innerHTML = '<div class="skeleton" style="height:160px"></div>';
+    title.textContent = (REPORT_TYPES.find((t) => t.id === type)?.name || type) +
+      (type === 'weekly_section' ? (' · W' + week + ' · ' + section) : '');
 
     try {
       let data;
       let html = null;
       if (window.RMUSANA_API_URL) {
-        const res = await api.reports.generate({ type, period, action: 'generate', reportType: type });
+        const res = await api.request('/reports', {
+          body: {
+            module: 'reports',
+            action: 'generate',
+            type: type,
+            reportType: type,
+            period: period,
+            week: Number(week),
+            section: section,
+            projectId: 'LUK54'
+          }
+        });
         data = res.data?.report || res.data;
         html = res.data?.html;
-        this.lastResult = res.data;
+        this.lastResult = res.data || { type, period, week, section, report: data };
       } else {
         data = localGenerate(type, period);
-        this.lastResult = { type, period, report: data, html: null };
+        this.lastResult = { type, period, week, section, report: data, html: null };
       }
       preview.innerHTML = buildPreviewHtml(type, data, period);
       if (html) {
@@ -267,7 +312,7 @@ export default {
       wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
       toastSuccess('Report generated');
     } catch (err) {
-      preview.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
+      preview.innerHTML = '<div class="empty-state"><p class="empty-state-desc">' + (err.message || 'Failed') + '</p></div>';
       toastError(err.message || 'Generate failed');
     }
   },
