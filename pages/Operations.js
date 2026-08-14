@@ -860,11 +860,16 @@ export default {
     try {
       const invRes = await apiOrLocal('feed', 'inventory');
       const listRes = await apiOrLocal('feed', 'list');
+      let mixRes = { data: [] };
+      try { mixRes = await apiOrLocal('feed', 'weeklyList'); } catch (e) { mixRes = { data: [] }; }
       const inv = invRes.data || [];
       const rows = listRes.data || [];
+      const mixes = mixRes.data || [];
       content.innerHTML =
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Stock</h3>' +
         '<div id="feed-inv" style="margin-bottom:var(--space-5)"></div>' +
+        '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Weekly mix / formulation</h3>' +
+        '<div id="feed-mix" style="margin-bottom:var(--space-5)"></div>' +
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Purchases</h3>' +
         '<div id="feed-purch"></div>';
       renderDataTable(content.querySelector('#feed-inv'), {
@@ -943,6 +948,62 @@ export default {
         }.bind(this),
         emptyMessage: 'No feed purchases yet.'
       });
+
+      renderDataTable(content.querySelector('#feed-mix'), {
+        columns: [
+          { key: 'WeekStart', label: 'Week start', accessor: function (r) { return formatDate(r.WeekStart || r.weekStart); } },
+          {
+            key: 'TotalKg',
+            label: 'Total (kg)',
+            accessor: function (r) {
+              return formatNumber(r.TotalKg ?? r.totalKg, 1);
+            }
+          },
+          {
+            key: 'BrandKg',
+            label: 'Brand',
+            accessor: function (r) { return formatNumber(r.BrandKg ?? r.brandKg, 1); }
+          },
+          {
+            key: 'ConcentrateKg',
+            label: 'Concentrate',
+            accessor: function (r) { return formatNumber(r.ConcentrateKg ?? r.concentrateKg, 1); }
+          },
+          {
+            key: 'MaizeKg',
+            label: 'Maize',
+            accessor: function (r) { return formatNumber(r.MaizeKg ?? r.maizeKg, 1); }
+          },
+          {
+            key: 'OthersKg',
+            label: 'Others',
+            accessor: function (r) { return formatNumber(r.OthersKg ?? r.othersKg, 1); }
+          }
+        ],
+        rows: mixes,
+        actions: this.writable ? [{ id: 'delete', label: 'Delete', danger: true }] : null,
+        onAction: async function (action, row) {
+          if (action !== 'delete') return;
+          var id = recordId(row, ['MixID', 'mixId', 'id']);
+          if (!id) { toastError('Cannot delete: missing id'); return; }
+          var ok = await confirmDialog({
+            title: 'Delete weekly mix',
+            message: 'Delete this weekly mix record?',
+            confirmLabel: 'Delete',
+            danger: true
+          });
+          if (!ok) return;
+          try {
+            await apiOrLocal('feed', 'weeklyDelete', { id: id });
+            toastSuccess('Weekly mix deleted');
+            this.renderTab();
+          } catch (err) {
+            toastError(err.message || 'Delete failed');
+          }
+        }.bind(this),
+        emptyMessage: 'No weekly mix logged yet. Use Weekly mix to add one.'
+      });
+
     } catch (err) {
       content.innerHTML =
         '<div class="empty-state"><p class="empty-state-desc">' + err.message + '</p></div>';

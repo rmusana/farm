@@ -173,9 +173,34 @@ function buildPreviewHtml(type, data, period) {
         <div class="card kpi-card"><div class="kpi-label">Feed allocation</div><div class="kpi-value">${formatUGX(a.feedAllocation)}</div></div>
         <div class="card kpi-card"><div class="kpi-label">Operator share</div><div class="kpi-value">${formatUGX(a.operatingPartnerShare)}</div></div>
       </div>`;
+  } else if (type === 'feed') {
+    body +=
+      '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Purchases total</div><div class="kpi-value">' + formatUGX(data.purchaseTotal) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Purchased (kg)</div><div class="kpi-value">' + formatNumber(data.totalPurchasedKg, 1) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Issued (kg)</div><div class="kpi-value">' + formatNumber(data.totalIssuedKg, 1) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Weekly mix (kg)</div><div class="kpi-value">' + formatNumber(data.weeklyMixTotalKg, 1) + '</div></div>' +
+      '</div>';
+    if (data.purchases && data.purchases.length) {
+      body += '<p class="u-text-sm u-font-semibold" style="margin-top:var(--space-4)">Purchases: ' + data.purchases.length + ' lines</p>';
+    }
+    if (data.weeklyMixes && data.weeklyMixes.length) {
+      body += '<p class="u-text-sm">Weekly formulations logged: ' + data.weeklyMixes.length + '</p>';
+    }
+  } else if (type === 'expense') {
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Total expenses</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.totalExpenses) + '</div></div></div>';
+  } else if (type === 'revenue') {
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.revenue) + '</div></div></div>';
+  } else if (type === 'mortality') {
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Total mortality</div><div class="kpi-value">' + formatNumber(data.total) + '</div></div></div>';
+  } else if (type === 'inventory') {
+    body += '<p class="u-text-sm">Feed stock lines: ' + ((data.feed && data.feed.length) || 0) + ' · Inventory items: ' + ((data.items && data.items.length) || 0) + '</p>';
   } else {
-    body += `<p class="u-text-sm u-text-secondary">${data.note || 'Report generated. Connect Apps Script for full detail tables and PDF storage.'}</p>`;
-    if (data.total != null) body += `<p class="u-font-semibold">Total: ${formatUGX(data.total)}</p>`;
+    if (data.note) body += '<p class="u-text-sm u-text-secondary">' + data.note + '</p>';
+    if (data.total != null) body += '<p class="u-font-semibold">Total: ' + formatUGX(data.total) + '</p>';
+    if (!data.note && data.total == null && data.title) {
+      body += '<p class="u-text-sm u-text-secondary">Summary generated for this period.</p>';
+    }
   }
   return body;
 }
@@ -298,13 +323,16 @@ export default {
             projectId: 'LUK54'
           }
         });
-        data = res.data?.report || res.data;
-        html = res.data?.html;
-        this.lastResult = res.data || { type, period, week, section, report: data };
+        // Apps Script returns { success, data: { report, html, type, period } }
+        const payload = res.data || res;
+        data = payload.report || payload;
+        html = payload.html || null;
+        this.lastResult = { type: type, period: period, week: week, section: section, report: data, html: html };
       } else {
         data = localGenerate(type, period);
         this.lastResult = { type, period, week, section, report: data, html: null };
       }
+      if (!data || typeof data !== 'object') data = { title: type };
       preview.innerHTML = buildPreviewHtml(type, data, period);
       if (html) {
         this.lastResult.html = html;
