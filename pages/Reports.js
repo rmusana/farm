@@ -322,18 +322,39 @@ export default {
       toastError('Generate a report first');
       return;
     }
-    const html = this.lastResult.html || `
-      <!DOCTYPE html><html><head><title>RMUSANA Report</title>
-      <style>body{font-family:system-ui;padding:32px;max-width:800px;margin:0 auto}</style>
-      </head><body>${this.root.querySelector('#report-preview')?.innerHTML || ''}</body></html>`;
+    const preview = this.root.querySelector('#report-preview');
+    const title = this.root.querySelector('#preview-title')?.textContent || 'LUK54 Report';
+    const bodyHtml = preview ? preview.innerHTML : '';
+    if (!bodyHtml || bodyHtml.indexOf('skeleton') >= 0) {
+      toastError('Generate a report first');
+      return;
+    }
     const w = window.open('', '_blank');
     if (!w) {
       toastError('Pop-up blocked. Allow pop-ups to print.');
       return;
     }
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 300);
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' +
+      title.replace(/</g, '') +
+      '</title><style>' +
+      'body{font-family:system-ui,-apple-system,sans-serif;padding:32px;max-width:860px;margin:0 auto;color:#111;line-height:1.45}' +
+      'h1,h2,h3{margin:0 0 12px} .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:16px 0}' +
+      '.kpi-card,.card{border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px}' +
+      '.kpi-label{font-size:12px;color:#6b7280;margin-bottom:4px}' +
+      '.kpi-value{font-size:20px;font-weight:700}' +
+      'p{margin:8px 0} table{width:100%;border-collapse:collapse;margin-top:16px}' +
+      'th,td{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:13px}' +
+      '@media print{body{padding:12px}}' +
+      '</style></head><body>' +
+      '<h1>' + title.replace(/</g, '') + '</h1>' +
+      bodyHtml +
+      '</body></html>'
+    );
+    doc.close();
+    setTimeout(function () { w.focus(); w.print(); }, 350);
   },
 
   async email() {

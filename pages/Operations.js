@@ -60,6 +60,21 @@ const VACCINES = [
   'FOWL POX', 'DEWORMING', 'DEBEAKING', 'FOWL TYPHOID', 'NEWCASTLE LASOTA'
 ];
 
+
+function setBusy(btn, busy, labelBusy, labelIdle) {
+  if (!btn) return;
+  if (busy) {
+    btn.dataset.labelIdle = btn.textContent;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.textContent = labelBusy || 'Saving…';
+  } else {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    btn.textContent = labelIdle || btn.dataset.labelIdle || 'Save';
+  }
+}
+
 function today() {
   return todayEAT();
 }
@@ -619,6 +634,9 @@ export default {
     document.getElementById('save-daily').addEventListener('click', async function () {
       const form = document.getElementById('form-daily');
       if (!validateRequired(form, ['date', 'openingBirds'])) return;
+      const btn = document.getElementById('save-daily');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       const data = serializeForm(form);
       const sectionRaw = String(data.section || 'A').split('—')[0].trim();
       const trays = Number(data.eggsTrays) || 0;
@@ -643,6 +661,7 @@ export default {
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -715,6 +734,9 @@ export default {
 
       if (this.writable) {
         actions.querySelector('#btn-save-sections').addEventListener('click', async function () {
+          var btn = actions.querySelector('#btn-save-sections');
+          if (btn && btn.disabled) return;
+          setBusy(btn, true, 'Saving…');
           var payload = [];
           content.querySelectorAll('[data-sec-id]').forEach(function (row) {
             payload.push({
@@ -728,6 +750,7 @@ export default {
             toastSuccess('Sections saved — total ' + formatNumber(res.totalBirds != null ? res.totalBirds : 0) + ' birds');
             this.renderTab();
           } catch (err) {
+            setBusy(btn, false, null, 'Save sections');
             toastError(err.message || 'Save failed');
           }
         }.bind(this));
@@ -924,6 +947,77 @@ export default {
       content.innerHTML =
         '<div class="empty-state"><p class="empty-state-desc">' + err.message + '</p></div>';
     }
+  },
+
+
+  formWeeklyMix() {
+    var fields = [
+      { name: 'brandKg', label: 'Brand (kg)' },
+      { name: 'concentrateKg', label: 'Concentrate (kg)' },
+      { name: 'limePowderKg', label: 'Lime powder (kg)' },
+      { name: 'limestoneKg', label: 'Limestone (kg)' },
+      { name: 'soyaKg', label: 'Soya (kg)' },
+      { name: 'sunflowerKg', label: 'Sunflower (kg)' },
+      { name: 'brokenKg', label: 'Broken (kg)' },
+      { name: 'maizeKg', label: 'Maize (kg)' },
+      { name: 'othersKg', label: 'Others (kg)' }
+    ].map(function (p) {
+      return field({ name: p.name, label: p.label, type: 'number', value: '0' });
+    }).join('');
+
+    var html =
+      '<form id="form-weekly-mix">' +
+      field({ name: 'weekStart', label: 'Week start', type: 'date', required: true, value: today() }) +
+      field({ name: 'weekEnd', label: 'Week end', type: 'date' }) +
+      '<p class="u-text-sm u-text-secondary" style="margin:var(--space-2) 0">Ingredient breakdown for this week mix. Total is calculated automatically.</p>' +
+      '<div class="form-row">' + fields + '</div>' +
+      '<div class="card" style="padding:var(--space-3);margin:var(--space-3) 0">' +
+      '<span class="u-text-sm">Calculated total: </span><strong id="mix-total">0</strong> kg</div>' +
+      field({ name: 'notes', label: 'Notes', type: 'textarea' }) +
+      '</form>';
+
+    openModal({
+      title: 'Weekly feed mix / formulation',
+      content: html,
+      size: 'lg',
+      footer:
+        '<button class="btn btn-secondary" data-modal-close>Cancel</button>' +
+        '<button class="btn btn-primary" id="save-mix">Save mix</button>'
+    });
+
+    function recalc() {
+      var form = document.getElementById('form-weekly-mix');
+      if (!form) return;
+      var names = ['brandKg','concentrateKg','limePowderKg','limestoneKg','soyaKg','sunflowerKg','brokenKg','maizeKg','othersKg'];
+      var sum = 0;
+      names.forEach(function (n) {
+        var el = form.querySelector('[name="' + n + '"]');
+        if (el) sum += Number(el.value) || 0;
+      });
+      var tot = document.getElementById('mix-total');
+      if (tot) tot.textContent = String(Math.round(sum * 10) / 10);
+    }
+    var form = document.getElementById('form-weekly-mix');
+    form.querySelectorAll('input[type="number"]').forEach(function (inp) {
+      inp.addEventListener('input', recalc);
+    });
+
+    document.getElementById('save-mix').addEventListener('click', async function () {
+      const form = document.getElementById('form-weekly-mix');
+      if (!validateRequired(form, ['weekStart'])) return;
+      const btn = document.getElementById('save-mix');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
+      try {
+        await apiOrLocal('feed', 'weeklySave', serializeForm(form));
+        toastSuccess('Weekly mix saved (total calculated from ingredients)');
+        closeModal();
+        this.renderTab();
+      } catch (err) {
+        setBusy(btn, false, null, 'Save mix');
+        toastError(err.message || 'Save failed');
+      }
+    }.bind(this));
   },
 
   formFeedPurchase() {
@@ -1347,6 +1441,9 @@ export default {
     document.getElementById('save-health').addEventListener('click', async function () {
       const form = document.getElementById('form-health');
       if (!validateRequired(form, ['date'])) return;
+      const btn = document.getElementById('save-health');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       const data = serializeForm(form);
       let type = data.type;
       let product = data.product;
@@ -1373,6 +1470,7 @@ export default {
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -1705,6 +1803,9 @@ export default {
     document.getElementById('save-worker').addEventListener('click', async function () {
       const form = document.getElementById('form-worker');
       if (!validateRequired(form, ['name'])) return;
+      const btn = document.getElementById('save-worker');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       const data = serializeForm(form);
       try {
         if (existing) {
@@ -1724,6 +1825,7 @@ export default {
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
