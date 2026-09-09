@@ -210,23 +210,8 @@ export async function loginWithCredentials(email, password) {
     return res.data.user;
   }
 
-  // Local development / offline bootstrap users (matches Agreement parties)
-  const bootstrap = getBootstrapUsers();
-  const match = bootstrap.find(
-    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-  );
-  if (!match) {
-    throw new Error('Invalid email or password');
-  }
-  const user = {
-    id: match.id,
-    email: match.email,
-    name: match.name,
-    role: match.role
-  };
-  const token = 'local_' + btoa(user.email + ':' + Date.now());
-  persistSession(user, token);
-  return user;
+  // Local-only bootstrap (never used when API URL is set)
+  throw new Error('API is not configured. Set RMUSANA_API_URL to sign in.');
 }
 
 export async function loginWithGoogleToken(credential) {

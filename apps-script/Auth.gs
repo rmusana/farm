@@ -199,6 +199,35 @@ var Auth = {
     return null;
   },
 
+  normalizeRole: function (role) {
+    if (!role) return 'Viewer';
+    var r = String(role).trim();
+    var lower = r.toLowerCase();
+    if (lower === 'administrator' || lower === 'admin') return 'Administrator';
+    if (lower === 'investor' || lower.indexOf('invest') >= 0) return 'Investor';
+    if (lower === 'operationsmanager' || lower === 'operatingpartner' || lower.indexOf('operat') >= 0) return 'OperationsManager';
+    if (lower === 'viewer') return 'Viewer';
+    return r;
+  },
+
+  /**
+   * Returns true if body._user has one of the allowed roles.
+   * allowed: array of role strings e.g. ['Administrator']
+   */
+  requireRole: function (body, allowed) {
+    var user = body._user;
+    if (!user) return false;
+    var role = this.normalizeRole(user.Role || user.role);
+    for (var i = 0; i < allowed.length; i++) {
+      if (this.normalizeRole(allowed[i]) === role) return true;
+    }
+    return false;
+  },
+
+  deny: function (msg) {
+    return { success: false, error: msg || 'Forbidden', status: 403 };
+  },
+
   findUserById: function (id) {
     var rows = this.getUsers();
     for (var i = 0; i < rows.length; i++) {
@@ -228,10 +257,10 @@ var Auth = {
 
   bootstrapUsers: function () {
     return [
-      { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Robert Musana', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Moses Odong', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Jalo Dream Farm', Role: 'OperationsManager', PasswordHash: 'ops2026', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'System Admin', Role: 'Administrator', PasswordHash: 'admin2026', Active: true, GoogleSub: '', LastLogin: '' }
+      { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', PasswordHash: 'investor2026', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', PasswordHash: 'ops2026', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', PasswordHash: 'admin2026', Active: true, GoogleSub: '', LastLogin: '' }
     ];
   },
 

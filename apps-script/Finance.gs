@@ -6,13 +6,34 @@ var Finance = {
     var action = (body.action || 'list').toString();
     var resource = (body.resource || 'capital').toString();
 
+    var writeActions = { create: 1, seed: 1, finalize: 1, markPaid: 1, delete: 1, update: 1 };
+    if (writeActions[action]) {
+      // Capital / allocation / profit: Investment Partner or Admin
+      if (resource === 'capital' || resource === 'allocation' || resource === 'profit') {
+        if (!Auth.requireRole(body, ['Administrator', 'Investor'])) {
+          return Auth.deny('Investment Partner or Administrator access required');
+        }
+      } else if (resource === 'expenses') {
+        // Expenses: ops or admin or investor
+        if (!Auth.requireRole(body, ['Administrator', 'Investor', 'OperationsManager', 'OperatingPartner'])) {
+          return Auth.deny('Forbidden');
+        }
+      } else {
+        if (!Auth.requireRole(body, ['Administrator', 'Investor', 'OperationsManager', 'OperatingPartner'])) {
+          return Auth.deny('Forbidden');
+        }
+      }
+    }
+
     if (resource === 'capital') {
       if (action === 'list') return this.listCapital(body);
       if (action === 'create') return this.createCapital(body);
+      if (action === 'delete') return this.deleteById(body, 'CapitalContributions', 'ContributionID');
     }
     if (resource === 'expenses') {
       if (action === 'list') return this.listExpenses(body);
       if (action === 'create') return this.createExpense(body);
+      if (action === 'delete') return this.deleteById(body, 'Expenses', 'ExpenseID');
     }
     if (resource === 'budget') {
       if (action === 'status') return this.budgetStatus(body);
@@ -523,5 +544,31 @@ var Finance = {
 
   ensureHeaders: function (sheet, headers) {
     if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+  },
+
+  deleteById: function (body, sheetName, idColumn) {
+    var id = body.id || body.recordId || body.contributionId || body.expenseId;
+    if (!id) return { success: false, error: 'id required' };
+    var sheet = getSheet(sheetName);
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'Not found' };
+    var headers = data[0];
+    var idCol = headers.indexOf(idColumn);
+    if (idCol < 0) {
+      // try common alternates
+      var alts = ['ID', 'Id', 'RecordID'];
+      for (var a = 0; a < alts.length; a++) {
+        idCol = headers.indexOf(alts[a]);
+        if (idCol >= 0) break;
+      }
+    }
+    if (idCol < 0) return { success: false, error: 'ID column not found' };
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, data: { deleted: id } };
+      }
+    }
+    return { success: false, error: 'Not found' };
   }
 };

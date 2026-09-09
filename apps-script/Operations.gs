@@ -6,30 +6,55 @@ var Operations = {
     var action = (body.action || 'list').toString();
     var resource = (body.resource || 'daily').toString();
 
+    // Writes: Operating Partner or Administrator only
+    var writeActions = {
+      create: 1, save: 1, purchase: 1, issue: 1, weeklySave: 1, weeklyDelete: 1,
+      delete: 1, adjust: 1, update: 1, addOption: 1
+    };
+    if (writeActions[action]) {
+      if (!Auth.requireRole(body, ['Administrator', 'OperationsManager', 'OperatingPartner'])) {
+        return Auth.deny('Operating Partner or Administrator access required');
+      }
+    }
+
     if (resource === 'daily') {
       if (action === 'list') return this.listDaily(body);
       if (action === 'create') return this.createDaily(body);
+      if (action === 'delete') return this.deleteById(body, 'DailyProduction', 'RecordID');
       if (action === 'get') return this.getDaily(body);
     }
     if (resource === 'flock') {
       if (action === 'list') return this.listFlockEvents(body);
       if (action === 'create') return this.createFlockEvent(body);
+      if (action === 'delete') return this.deleteById(body, 'FlockEvents', 'EventID');
       if (action === 'status') return this.flockStatus(body);
+    }
+    if (resource === 'sections') {
+      if (action === 'list') return this.listSections(body);
+      if (action === 'save') return this.saveSections(body);
     }
     if (resource === 'feed') {
       if (action === 'list') return this.listFeedPurchases(body);
       if (action === 'purchase') return this.createFeedPurchase(body);
+      if (action === 'delete') return this.deleteById(body, 'FeedPurchases', 'PurchaseID');
       if (action === 'inventory') return this.feedInventory(body);
       if (action === 'issue') return this.issueFeed(body);
+      if (action === 'weeklyList') return this.listWeeklyMix(body);
+      if (action === 'weeklySave') return this.saveWeeklyMix(body);
+      if (action === 'weeklyDelete') return this.deleteById(body, 'WeeklyFeedMix', 'MixID');
     }
     if (resource === 'eggs' || resource === 'sales') {
       if (action === 'list') return this.listSales(body);
       if (action === 'create') return this.createSale(body);
+      if (action === 'delete') return this.deleteById(body, 'Sales', 'SaleID');
     }
     if (resource === 'health') {
       if (action === 'list') return this.listHealth(body);
       if (action === 'create') return this.createHealth(body);
+      if (action === 'delete') return this.deleteById(body, 'HealthEvents', 'EventID');
       if (action === 'schedule') return this.vaccinationSchedule(body);
+      if (action === 'options') return this.healthOptions(body);
+      if (action === 'addOption') return this.addHealthOption(body);
     }
     if (resource === 'mortality') {
       if (action === 'list') return this.listMortality(body);
@@ -37,10 +62,18 @@ var Operations = {
     if (resource === 'inventory') {
       if (action === 'list') return this.listInventory(body);
       if (action === 'adjust') return this.adjustInventory(body);
+      if (action === 'delete') return this.deleteById(body, 'Inventory', 'ItemID');
     }
     if (resource === 'notes') {
       if (action === 'list') return this.listNotes(body);
       if (action === 'create') return this.createNote(body);
+      if (action === 'delete') return this.deleteById(body, 'StaffNotes', 'NoteID');
+    }
+    if (resource === 'workers') {
+      if (action === 'list') return this.listWorkers(body);
+      if (action === 'create') return this.createWorker(body);
+      if (action === 'update') return this.updateWorker(body);
+      if (action === 'delete') return this.deleteById(body, 'Workers', 'WorkerID');
     }
     return { success: false, error: 'Unknown operations action/resource' };
   },
@@ -75,7 +108,7 @@ var Operations = {
       'RecordID', 'ProjectID', 'Date', 'OpeningBirds', 'Mortality', 'ClosingBirds',
       'EggsCollected', 'Breakages', 'FeedBrandKg', 'FeedHendrixKg', 'FeedLimeKg',
       'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg', 'Notes', 'DocumentIDs', 'CreatedBy', 'CreatedAt',
-      'Section', 'EggsLost', 'FeedLimePowderKg', 'FeedLimestoneKg', 'FeedMaizeKg', 'FeedOthersKg', 'FeedConcentrateKg'
+      'Section', 'EggsLost', 'FeedLimePowderKg', 'FeedLimestoneKg', 'FeedMaizeKg', 'FeedOthersKg', 'FeedConcentrateKg', 'FeedIssuedKg', 'EggsTrays', 'ProductionPct'
     ]);
 
     var opening = Utils.toNumber(body.openingBirds);
@@ -92,6 +125,14 @@ var Operations = {
       Mortality: mortality,
       ClosingBirds: closing,
       EggsCollected: Utils.toNumber(body.eggsCollected),
+      EggsTrays: Utils.toNumber(body.eggsTrays) || (Utils.toNumber(body.eggsCollected) / 30),
+      FeedIssuedKg: Utils.toNumber(body.feedIssuedKg != null ? body.feedIssuedKg : body.feedTotalKg),
+      ProductionPct: (function () {
+        var birds = Utils.toNumber(body.openingBirds);
+        var eggs = Utils.toNumber(body.eggsCollected);
+        if (!eggs || !birds) return '';
+        return Math.round((eggs / birds) * 1000) / 10;
+      })(),
       Breakages: Utils.toNumber(body.breakages),
       FeedBrandKg: Utils.toNumber(body.feedBrandKg),
       FeedHendrixKg: Utils.toNumber(body.feedHendrixKg || body.feedConcentrateKg),
@@ -161,13 +202,20 @@ var Operations = {
 
   flockStatus: function (body) {
     var pid = this.projectId(body);
-    var birds = 2500;
+    var birds = 0;
     try {
-      var projects = Utils.sheetToObjects(getSheet('Projects'));
-      var p = projects.filter(function (x) { return String(x.ProjectID) === String(pid); })[0];
-      if (p && p.CurrentBirds) birds = Utils.toNumber(p.CurrentBirds);
-      else if (p && p.PlannedBirds) birds = Utils.toNumber(p.PlannedBirds);
+      var sec = this.listSections(body);
+      if (sec.totalBirds != null) birds = Utils.toNumber(sec.totalBirds);
     } catch (e) {}
+    if (!birds) {
+      try {
+        var projects = Utils.sheetToObjects(getSheet('Projects'));
+        var p = projects.filter(function (x) { return String(x.ProjectID) === String(pid); })[0];
+        if (p && p.CurrentBirds) birds = Utils.toNumber(p.CurrentBirds);
+        else if (p && p.PlannedBirds) birds = Utils.toNumber(p.PlannedBirds);
+      } catch (e2) {}
+    }
+    if (!birds) birds = 0;
 
     var daily = this.rows('DailyProduction', pid);
     daily.sort(function (a, b) { return new Date(b.Date) - new Date(a.Date); });
@@ -650,6 +698,240 @@ var Operations = {
       var next = (status.data.currentBirds || 0) + delta;
       this.touchFlockCount(pid, Math.max(0, next));
     } catch (e) {}
+  },
+
+
+  /* ── Sections (A/B/C/Others) ─────────────────────────── */
+
+  defaultSections: function () {
+    return [
+      { SectionID: 'A', Label: 'Section A — Young', BirdCount: 0 },
+      { SectionID: 'B', Label: 'Section B — Medium', BirdCount: 0 },
+      { SectionID: 'C', Label: 'Section C — Grown', BirdCount: 0 },
+      { SectionID: 'Others', Label: 'Others', BirdCount: 0 }
+    ];
+  },
+
+  listSections: function (body) {
+    var pid = this.projectId(body);
+    var sheet = getSheet('FlockSections');
+    this.ensureHeaders(sheet, ['SectionID', 'ProjectID', 'Label', 'BirdCount', 'UpdatedAt']);
+    var rows = this.rows('FlockSections', pid);
+    if (!rows.length) {
+      var defs = this.defaultSections();
+      var self = this;
+      defs.forEach(function (d) {
+        Utils.appendObject(sheet, {
+          SectionID: d.SectionID,
+          ProjectID: pid,
+          Label: d.Label,
+          BirdCount: d.BirdCount,
+          UpdatedAt: Utils.nowISO()
+        });
+      });
+      rows = this.rows('FlockSections', pid);
+    }
+    var total = rows.reduce(function (s, r) { return s + Utils.toNumber(r.BirdCount); }, 0);
+    return { success: true, data: rows, totalBirds: total };
+  },
+
+  saveSections: function (body) {
+    var pid = this.projectId(body);
+    var sections = body.sections || [];
+    if (!sections.length) return { success: false, error: 'sections array required' };
+    var sheet = getSheet('FlockSections');
+    this.ensureHeaders(sheet, ['SectionID', 'ProjectID', 'Label', 'BirdCount', 'UpdatedAt']);
+    // Clear existing for project then rewrite (simple + reliable)
+    var data = sheet.getDataRange().getValues();
+    if (data.length >= 2) {
+      var headers = data[0];
+      var pidCol = headers.indexOf('ProjectID');
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][pidCol]) === String(pid)) sheet.deleteRow(i + 1);
+      }
+    }
+    var total = 0;
+    var out = [];
+    for (var j = 0; j < sections.length; j++) {
+      var s = sections[j];
+      var count = Utils.toNumber(s.birdCount != null ? s.birdCount : s.BirdCount);
+      total += count;
+      var row = {
+        SectionID: s.sectionId || s.SectionID || ('S' + j),
+        ProjectID: pid,
+        Label: s.label || s.Label || ('Section ' + (j + 1)),
+        BirdCount: count,
+        UpdatedAt: Utils.nowISO()
+      };
+      Utils.appendObject(sheet, row);
+      out.push(row);
+    }
+    this.touchFlockCount(pid, total);
+    return { success: true, data: out, totalBirds: total };
+  },
+
+  /* ── Weekly feed mix (formulation) ───────────────────── */
+
+  listWeeklyMix: function (body) {
+    var rows = this.rows('WeeklyFeedMix', this.projectId(body));
+    rows.sort(function (a, b) { return String(b.WeekStart || '').localeCompare(String(a.WeekStart || '')); });
+    return { success: true, data: rows };
+  },
+
+  saveWeeklyMix: function (body) {
+    Utils.requireFields(body, ['weekStart']);
+    var pid = this.projectId(body);
+    var sheet = getSheet('WeeklyFeedMix');
+    this.ensureHeaders(sheet, [
+      'MixID', 'ProjectID', 'WeekStart', 'WeekEnd',
+      'BrandKg', 'ConcentrateKg', 'LimePowderKg', 'LimestoneKg', 'SoyaKg',
+      'SunflowerKg', 'BrokenKg', 'MaizeKg', 'OthersKg', 'TotalKg', 'Notes', 'CreatedBy', 'CreatedAt'
+    ]);
+    var brand = Utils.toNumber(body.brandKg);
+    var conc = Utils.toNumber(body.concentrateKg);
+    var limeP = Utils.toNumber(body.limePowderKg);
+    var limeS = Utils.toNumber(body.limestoneKg);
+    var soya = Utils.toNumber(body.soyaKg);
+    var sun = Utils.toNumber(body.sunflowerKg);
+    var broken = Utils.toNumber(body.brokenKg);
+    var maize = Utils.toNumber(body.maizeKg);
+    var others = Utils.toNumber(body.othersKg);
+    // Actual sum — never trust a client "total" alone
+    var total = brand + conc + limeP + limeS + soya + sun + broken + maize + others;
+    var id = Utils.generateId('mix');
+    var row = {
+      MixID: id,
+      ProjectID: pid,
+      WeekStart: body.weekStart,
+      WeekEnd: body.weekEnd || '',
+      BrandKg: brand,
+      ConcentrateKg: conc,
+      LimePowderKg: limeP,
+      LimestoneKg: limeS,
+      SoyaKg: soya,
+      SunflowerKg: sun,
+      BrokenKg: broken,
+      MaizeKg: maize,
+      OthersKg: others,
+      TotalKg: total,
+      Notes: body.notes || '',
+      CreatedBy: (body._user && body._user.Email) || '',
+      CreatedAt: Utils.nowISO()
+    };
+    Utils.appendObject(sheet, row);
+    return { success: true, data: row };
+  },
+
+  /* ── Workers ─────────────────────────────────────────── */
+
+  listWorkers: function (body) {
+    var rows = this.rows('Workers', this.projectId(body));
+    rows.sort(function (a, b) { return String(a.Name || '').localeCompare(String(b.Name || '')); });
+    return { success: true, data: rows };
+  },
+
+  createWorker: function (body) {
+    Utils.requireFields(body, ['name']);
+    var pid = this.projectId(body);
+    var sheet = getSheet('Workers');
+    this.ensureHeaders(sheet, ['WorkerID', 'ProjectID', 'Name', 'Payroll', 'Bonus', 'Advance', 'Notes', 'UpdatedAt', 'CreatedAt']);
+    var id = Utils.generateId('wk');
+    var row = {
+      WorkerID: id,
+      ProjectID: pid,
+      Name: body.name,
+      Payroll: Utils.toNumber(body.payroll),
+      Bonus: Utils.toNumber(body.bonus),
+      Advance: Utils.toNumber(body.advance),
+      Notes: body.notes || '',
+      UpdatedAt: Utils.nowISO(),
+      CreatedAt: Utils.nowISO()
+    };
+    Utils.appendObject(sheet, row);
+    return { success: true, data: row };
+  },
+
+  updateWorker: function (body) {
+    Utils.requireFields(body, ['id']);
+    var sheet = getSheet('Workers');
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'Not found' };
+    var headers = data[0];
+    var idCol = headers.indexOf('WorkerID');
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(body.id)) {
+        function set(col, val) {
+          var c = headers.indexOf(col);
+          if (c >= 0) sheet.getRange(i + 1, c + 1).setValue(val);
+        }
+        if (body.name != null) set('Name', body.name);
+        if (body.payroll != null) set('Payroll', Utils.toNumber(body.payroll));
+        if (body.bonus != null) set('Bonus', Utils.toNumber(body.bonus));
+        if (body.advance != null) set('Advance', Utils.toNumber(body.advance));
+        if (body.notes != null) set('Notes', body.notes);
+        set('UpdatedAt', Utils.nowISO());
+        return { success: true, message: 'Updated' };
+      }
+    }
+    return { success: false, error: 'Worker not found' };
+  },
+
+  /* ── Health options (editable type/product lists) ────── */
+
+  healthOptions: function (body) {
+    var pid = this.projectId(body);
+    var sheet = getSheet('HealthOptions');
+    this.ensureHeaders(sheet, ['OptionID', 'ProjectID', 'Kind', 'Value', 'CreatedAt']);
+    var rows = this.rows('HealthOptions', pid);
+    var types = rows.filter(function (r) { return r.Kind === 'Type'; }).map(function (r) { return r.Value; });
+    var products = rows.filter(function (r) { return r.Kind === 'Product'; }).map(function (r) { return r.Value; });
+    var defaultTypes = ['Vaccination', 'Medication', 'Treatment', 'Other'];
+    var defaultProducts = ['NEWCASTLE IB', 'GUMBOLO 1', 'GUMBOLO 2', 'NEWCASTLE PLAIN', 'FOWL POX', 'DEWORMING', 'DEBEAKING', 'FOWL TYPHOID', 'NEWCASTLE LASOTA', 'GLUCOVIT', 'ASHYTL', 'LIMOVIT', 'MACROLAN', 'COCCITOLTRAZOL', 'OXYVITAMIN', 'LEVACIDE', 'DISINFECTANT'];
+    defaultTypes.forEach(function (v) { if (types.indexOf(v) < 0) types.push(v); });
+    defaultProducts.forEach(function (v) { if (products.indexOf(v) < 0) products.push(v); });
+    return { success: true, data: { types: types, products: products } };
+  },
+
+  addHealthOption: function (body) {
+    Utils.requireFields(body, ['kind', 'value']);
+    var kind = String(body.kind);
+    if (kind !== 'Type' && kind !== 'Product') return { success: false, error: 'kind must be Type or Product' };
+    var pid = this.projectId(body);
+    var sheet = getSheet('HealthOptions');
+    this.ensureHeaders(sheet, ['OptionID', 'ProjectID', 'Kind', 'Value', 'CreatedAt']);
+    var val = String(body.value).trim();
+    if (!val) return { success: false, error: 'value required' };
+    var existing = this.rows('HealthOptions', pid).filter(function (r) {
+      return r.Kind === kind && String(r.Value) === val;
+    });
+    if (existing.length) return { success: true, data: existing[0], message: 'Already exists' };
+    var row = {
+      OptionID: Utils.generateId('ho'),
+      ProjectID: pid,
+      Kind: kind,
+      Value: val,
+      CreatedAt: Utils.nowISO()
+    };
+    Utils.appendObject(sheet, row);
+    return { success: true, data: row };
+  },
+
+  deleteById: function (body, sheetName, idColumn) {
+    var id = body.id || body.recordId || body.saleId || body.eventId || body.noteId || body.itemId || body.purchaseId || body.workerId || body.mixId;
+    if (!id) return { success: false, error: 'id required' };
+    var sheet = getSheet(sheetName);
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'Not found' };
+    var headers = data[0];
+    var idCol = headers.indexOf(idColumn);
+    if (idCol < 0) return { success: false, error: 'Sheet missing column ' + idColumn };
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Deleted', id: id };
+      }
+    }
+    return { success: false, error: 'Record not found' };
   },
 
   createAlert: function (pid, priority, title, reason, action, deadline) {
