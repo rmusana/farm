@@ -14,7 +14,7 @@ export default {
           <div class="login-visual-content">
             <div class="login-visual-mark">L5</div>
             <p class="login-visual-title">LUK54</p>
-            <p class="login-visual-tagline">Poultry operations &amp; investment, in one place.</p>
+            <p class="login-visual-tagline">See the flock. Know the numbers.</p>
           </div>
         </aside>
         <section class="login-panel">
