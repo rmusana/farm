@@ -32,9 +32,20 @@ export function openModal({ title, content, footer, size = 'md', onClose }) {
 
   requestAnimationFrame(() => backdrop.classList.add('open'));
 
-  backdrop.querySelector('[data-modal-close]')?.addEventListener('click', closeModal);
+  backdrop.querySelectorAll('[data-modal-close]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
+  });
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) closeModal();
+    const closer = e.target.closest && e.target.closest('[data-modal-close]');
+    if (closer) {
+      e.preventDefault();
+      closeModal();
+    }
   });
 
   const esc = (e) => {
