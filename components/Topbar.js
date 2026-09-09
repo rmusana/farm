@@ -180,10 +180,6 @@ export function renderTopbar(root) {
           </div>
         </div>
         <div class="topbar-right">
-          <button class="btn btn-secondary btn-sm" id="reach-out-btn" title="Contact Investor or Manager">
-            <i data-lucide="message-circle" style="width:16px;height:16px"></i>
-            <span class="reach-label">Reach out</span>
-          </button>
           <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
             <i data-lucide="${theme === 'dark' ? 'sun' : 'moon'}"></i>
           </button>
@@ -217,17 +213,7 @@ export function renderTopbar(root) {
       setState({ theme: next });
       paint();
     });
-
-    root.querySelector('#reach-out-btn')?.addEventListener('click', async () => {
-      try {
-        const contacts = await loadContacts();
-        openReachOut(contacts);
-      } catch (err) {
-        toastError(err.message || 'Could not load contacts');
-      }
-    });
-
-    root.querySelector('#user-menu')?.addEventListener('click', async () => {
+root.querySelector('#user-menu')?.addEventListener('click', async () => {
       if (!isAuthenticated()) {
         navigate('login');
         return;
