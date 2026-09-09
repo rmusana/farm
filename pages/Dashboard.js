@@ -143,12 +143,37 @@ export default {
 
     if (window.lucide) window.lucide.createIcons({ nodes: [root] });
 
-    root.querySelector('#dash-refresh')?.addEventListener('click', () => this.load(root));
+    root.querySelector('#dash-refresh')?.addEventListener('click', async () => {
+      const btn = root.querySelector('#dash-refresh');
+      if (btn) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const label = btn.innerHTML;
+        btn.innerHTML = '<span>Refreshing…</span>';
+        try {
+          await this.load(root);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = label;
+          if (window.lucide) window.lucide.createIcons({ nodes: [btn] });
+        }
+      } else {
+        await this.load(root);
+      }
+    });
 
     await this.load(root);
   },
 
   async load(root) {
+    // Destroy previous charts so refresh does not stack instances
+    if (this._charts && this._charts.length) {
+      this._charts.forEach(function (c) {
+        try { if (c && typeof c.destroy === 'function') c.destroy(); } catch (e) {}
+      });
+      this._charts = [];
+    }
+
     let summary = emptySummary();
     let insights = [];
     let activity = [];
