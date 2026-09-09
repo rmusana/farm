@@ -1,5 +1,8 @@
 /* Sidebar */
 .sidebar {
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+
   position: fixed;
   top: 0;
   left: 0;
@@ -347,6 +350,9 @@ body.sidebar-collapsed .main-wrapper {
 /* Responsive */
 @media (max-width: 1023px) {
   .sidebar {
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+
     transform: translateX(-100%);
   }
   .sidebar.open {

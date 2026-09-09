@@ -54,11 +54,17 @@ async function resolve() {
   const isLogin = base === 'login';
   setShellVisibility(isLogin);
   setState({ route: path, loading: true });
+  const prog = document.getElementById('route-progress');
+  if (prog) prog.hidden = false;
 
   const loader = routes.get(path) || routes.get(base);
   if (!loader) {
     renderNotFound();
     setState({ loading: false });
+    const _p = document.getElementById('route-progress');
+    if (_p) _p.hidden = true;
+    const progDone = document.getElementById('route-progress');
+    if (progDone) progDone.hidden = true;
     return;
   }
 
@@ -86,6 +92,8 @@ async function resolve() {
       </div>`;
   } finally {
     setState({ loading: false });
+    const _p = document.getElementById('route-progress');
+    if (_p) _p.hidden = true;
   }
 }
 
