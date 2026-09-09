@@ -5,7 +5,7 @@ export function renderKPI(container, items) {
   if (!container) return;
   container.className = 'kpi-grid';
   container.innerHTML = items.map((item) => `
-    <div class="card card-glass kpi-card">
+    <div class="card kpi-card">
       <div class="kpi-label">${item.label}</div>
       <div class="kpi-value">${item.value ?? '—'}</div>
       ${item.trend ? `
@@ -21,12 +21,10 @@ export function renderKPI(container, items) {
 }
 
 export function formatUGX(n) {
-  if (n == null || isNaN(n)) return '—';
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0
-  }).format(n);
+  if (n == null || n === '' || isNaN(Number(n))) return '—';
+  const num = Math.round(Number(n));
+  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(num);
+  return 'UGX ' + formatted;
 }
 
 export function formatPercent(n, digits = 1) {
