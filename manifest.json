@@ -1,11 +1,11 @@
 {
-  "name": "LUK54 Poultry Management & Investment Platform",
+  "name": "LUK54",
   "short_name": "LUK54",
-  "description": "Integrated poultry operations and investment intelligence platform",
+  "description": "See the flock. Know the numbers.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0c1210",
+  "theme_color": "#1b6b4a",
   "orientation": "any",
   "icons": [
     {
