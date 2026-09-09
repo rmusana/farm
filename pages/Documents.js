@@ -113,7 +113,7 @@ export default {
             <div class="empty-state">
               <i data-lucide="folder-open" class="empty-state-icon"></i>
               <p class="empty-state-title">No documents yet</p>
-              <p class="empty-state-desc">Upload receipts, invoices, photos and statements. Files are stored in Google Drive and linked to operational records.</p>
+              <p class="empty-state-desc">Receipts, invoices, photos and statements will appear here once uploaded.</p>
             </div>
           </div></div>`;
         if (window.lucide) window.lucide.createIcons({ nodes: [el] });
@@ -257,7 +257,7 @@ export default {
     } else if (url) {
       body += `<p class="u-text-sm"><a href="${url}" target="_blank" rel="noopener">Open / download file</a></p>`;
     } else if (doc.DriveFileID) {
-      body += `<p class="u-text-sm"><a href="https://drive.google.com/file/d/${doc.DriveFileID}/view" target="_blank" rel="noopener">Open in Google Drive</a></p>`;
+      body += `<p class="u-text-sm"><a href="https://drive.google.com/file/d/${doc.DriveFileID}/view" target="_blank" rel="noopener">Open file</a></p>`;
     } else {
       body += `<p class="u-text-sm u-text-muted">Preview not available offline for this file type. Re-upload after connecting Apps Script + Drive.</p>`;
     }

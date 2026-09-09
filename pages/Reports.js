@@ -310,7 +310,7 @@ export default {
     try {
       let data;
       let html = null;
-      if (window.RMUSANA_API_URL) {
+      if (window.LUK54_API_URL) {
         const res = await api.request('/reports', {
           body: {
             module: 'reports',
@@ -393,7 +393,7 @@ export default {
     const email = prompt('Send report to email address:');
     if (!email) return;
     try {
-      if (window.RMUSANA_API_URL) {
+      if (window.LUK54_API_URL) {
         await api.request('/reports', {
           body: {
             module: 'reports',
@@ -406,8 +406,8 @@ export default {
         toastSuccess('Report emailed to ' + email);
       } else {
         // Fallback: mailto with summary
-        const subject = encodeURIComponent('RMUSANA Report · ' + (this.lastResult.period || ''));
-        const body = encodeURIComponent('Please find the RMUSANA report for period ' + this.lastResult.period + '.\n\n(Configure Apps Script Gmail for full HTML delivery.)');
+        const subject = encodeURIComponent('LUK54 Report · ' + (this.lastResult.period || ''));
+        const body = encodeURIComponent('Please find the LUK54 report for period ' + this.lastResult.period + '.\n\n(Configure Apps Script Gmail for full HTML delivery.)');
         window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
         toastSuccess('Opening mail client');
       }

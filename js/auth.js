@@ -7,17 +7,25 @@ import api from './api.js';
 const PUBLIC_ROUTES = new Set(['login']);
 
 const ROLE_PERMISSIONS = {
-  /* Admin: everything */
+  /* Full system control */
   Administrator: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents', 'settings'],
-  /* Investor: investment intelligence — not staff ops tools or settings */
+  /* Capital, returns, statements, high-level flock health — not daily data entry */
   Investor: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
-  /* Operating partner (legacy name OperationsManager): run the farm */
+  /* Day-to-day flock, records, expenses, sales, supporting documents */
   OperationsManager: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
   OperatingPartner: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
   Viewer: ['dashboard', 'reports', 'alerts']
 };
 
-/** Finance sub-sections visible per role */
+const ROLE_LABELS = {
+  Administrator: 'Administrator',
+  Investor: 'Investment Partner',
+  OperationsManager: 'Operating Partner',
+  OperatingPartner: 'Operating Partner',
+  Viewer: 'Viewer'
+};
+
+/** Finance tabs visible per role */
 const FINANCE_SECTIONS_BY_ROLE = {
   Administrator: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
   Investor: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
@@ -26,12 +34,45 @@ const FINANCE_SECTIONS_BY_ROLE = {
   Viewer: ['summary']
 };
 
+/** Normalize backend / legacy role strings to a known key */
+export function normalizeRole(role) {
+  if (!role) return 'Viewer';
+  const r = String(role).trim();
+  const map = {
+    Administrator: 'Administrator',
+    Admin: 'Administrator',
+    admin: 'Administrator',
+    administrator: 'Administrator',
+    Investor: 'Investor',
+    investor: 'Investor',
+    'Investment Partner': 'Investor',
+    InvestmentPartner: 'Investor',
+    OperationsManager: 'OperationsManager',
+    OperatingPartner: 'OperationsManager',
+    'Operating Partner': 'OperationsManager',
+    'operations manager': 'OperationsManager',
+    Viewer: 'Viewer',
+    viewer: 'Viewer'
+  };
+  if (map[r]) return map[r];
+  const lower = r.toLowerCase();
+  if (lower.includes('admin')) return 'Administrator';
+  if (lower.includes('invest')) return 'Investor';
+  if (lower.includes('operat')) return 'OperationsManager';
+  return r;
+}
+
+export function roleLabel(role) {
+  const key = normalizeRole(role);
+  return ROLE_LABELS[key] || key || '—';
+}
+
 export function isAuthenticated() {
   return !!getState('user');
 }
 
 export function getRole() {
-  return getState('role');
+  return normalizeRole(getState('role'));
 }
 
 export function getUser() {
@@ -46,7 +87,9 @@ export function hasRole(...roles) {
 export function canAccess(route) {
   if (PUBLIC_ROUTES.has(route)) return true;
   if (!isAuthenticated()) return false;
-  const role = getRole();
+  const role = normalizeRole(getRole());
+  // Administrator always has full nav including settings
+  if (role === 'Administrator') return true;
   const allowed = ROLE_PERMISSIONS[role];
   if (!allowed) return false;
   const base = route.split('/')[0];
@@ -104,9 +147,10 @@ export function isOps() {
 }
 
 function persistSession(user, token) {
+  const normalized = { ...user, role: normalizeRole(user.role || user.Role) };
   sessionStorage.setItem('rmusana_token', token);
-  sessionStorage.setItem('rmusana_user', JSON.stringify(user));
-  setState({ user, role: user.role });
+  sessionStorage.setItem('rmusana_user', JSON.stringify(normalized));
+  setState({ user: normalized, role: normalized.role });
 }
 
 function clearSession() {
@@ -235,31 +279,31 @@ export function requireAuth(route) {
 function getBootstrapUsers() {
   return [
     {
-      id: 'usr_robert',
+      id: 'usr_investor_a',
       email: 'robert@luk54.com',
       password: 'investor2026',
-      name: 'Robert Musana',
+      name: 'Investment Partner',
       role: 'Investor'
     },
     {
-      id: 'usr_moses',
+      id: 'usr_investor_b',
       email: 'moses@luk54.com',
       password: 'investor2026',
-      name: 'Moses Odong',
+      name: 'Investment Partner',
       role: 'Investor'
     },
     {
-      id: 'usr_joseph',
+      id: 'usr_ops',
       email: 'joseph@jalodreamfarm.com',
       password: 'ops2026',
-      name: 'Joseph Sango',
+      name: 'Operating Partner',
       role: 'OperationsManager'
     },
     {
       id: 'usr_admin',
       email: 'admin@rmusana.com',
       password: 'admin2026',
-      name: 'System Admin',
+      name: 'Administrator',
       role: 'Administrator'
     }
   ];
@@ -297,6 +341,8 @@ export default {
   isAdmin,
   isInvestor,
   isOps,
+  normalizeRole,
+  roleLabel,
   loadSession,
   loginWithCredentials,
   loginWithGoogleToken,
