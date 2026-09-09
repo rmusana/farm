@@ -1,5 +1,5 @@
 import { getState, setState, subscribe } from '../js/state.js';
-import {  logout, isAuthenticated, getRole, canWrite , canWriteOperations } from '../js/auth.js';
+import { logout, isAuthenticated, getRole, canWrite, canWriteOperations, roleLabel } from '../js/auth.js';
 import { navigate } from '../js/router.js';
 import { openModal, closeModal, confirmDialog } from './Modal.js';
 import { toastSuccess, toastError } from './Toast.js';
@@ -196,7 +196,7 @@ export function renderTopbar(root) {
             <div class="user-avatar">${initials}</div>
             <div class="user-meta">
               <span class="user-name">${user?.name || 'Guest'}</span>
-              <span class="user-role">${role || '—'}</span>
+              <span class="user-role">${roleLabel(role)}</span>
             </div>
             <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--color-text-muted)"></i>
           </div>

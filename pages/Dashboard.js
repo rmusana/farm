@@ -42,12 +42,12 @@ function emptySummary() {
 function localInsights(s) {
   const list = [];
   if (s.healthScore == null) {
-    list.push({ severity: 'info', text: 'Awaiting operational data. Log daily production, feed and expenses to generate live intelligence.' });
+    list.push({ severity: 'info', text: 'No operational data yet. Record production, feed and expenses to populate this view.' });
   }
   if (!s.commercialReached) {
-    list.push({ severity: 'info', text: 'Commercial production is expected at Week 25 from stocking (1 June 2026) or when laying reaches 85%.' });
+    list.push({ severity: 'info', text: 'Commercial production begins at week 25 from stocking, or when laying reaches 85%, whichever is earlier.' });
   }
-  list.push({ severity: 'info', text: 'Revenue allocation rules apply once commercial production levels are reached.' });
+  list.push({ severity: 'info', text: 'Revenue allocation applies after commercial production is reached.' });
   if (s.outstandingFunding > 0) {
     list.push({ severity: 'caution', text: 'Estimated capital requirement remaining: ' + formatUGX(s.outstandingFunding) + '.' });
   }
