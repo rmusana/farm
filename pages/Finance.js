@@ -6,9 +6,22 @@ import { renderDataTable } from '../components/DataTable.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { formatUGX, formatPercent, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
-import { canApprove, canWrite } from '../js/auth.js';
+import { canApprove, canWrite, canWriteFinanceSection, financeSectionsForRole } from '../js/auth.js';
 import api from '../js/api.js';
 import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
+
+function setBusy(btn, busy, labelBusy, labelIdle) {
+  if (!btn) return;
+  if (busy) {
+    btn.dataset.labelIdle = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = labelBusy || 'Saving…';
+  } else {
+    btn.disabled = false;
+    btn.textContent = labelIdle || btn.dataset.labelIdle || 'Save';
+  }
+}
+
 
 const SECTIONS = [
   { id: 'summary', label: 'Overview' },
@@ -150,7 +163,7 @@ export default {
       </div>
 
       <div style="display:flex;gap:var(--space-1);flex-wrap:wrap;margin-bottom:var(--space-4)" id="fin-tabs">
-        ${SECTIONS.map((s) =>
+        ${(SECTIONS.filter(function (s) { return (this.allowedSections || []).indexOf(s.id) >= 0; }.bind(this))).map((s) =>
           '<button class="btn btn-sm ' +
           (s.id === this.activeSection ? 'btn-primary' : 'btn-ghost') +
           '" data-sec="' + s.id + '">' + s.label + '</button>'

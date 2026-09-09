@@ -7,10 +7,23 @@ import api from './api.js';
 const PUBLIC_ROUTES = new Set(['login']);
 
 const ROLE_PERMISSIONS = {
-  Investor: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents', 'settings'],
+  /* Admin: everything */
   Administrator: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents', 'settings'],
-  OperationsManager: ['dashboard', 'operations', 'alerts', 'documents', 'reports'],
-  Viewer: ['dashboard', 'reports']
+  /* Investor: investment intelligence — not staff ops tools or settings */
+  Investor: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
+  /* Operating partner (legacy name OperationsManager): run the farm */
+  OperationsManager: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
+  OperatingPartner: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
+  Viewer: ['dashboard', 'reports', 'alerts']
+};
+
+/** Finance sub-sections visible per role */
+const FINANCE_SECTIONS_BY_ROLE = {
+  Administrator: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
+  Investor: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
+  OperationsManager: ['summary', 'revenue', 'expenses'],
+  OperatingPartner: ['summary', 'revenue', 'expenses'],
+  Viewer: ['summary']
 };
 
 export function isAuthenticated() {
@@ -42,15 +55,52 @@ export function canAccess(route) {
 
 export function canWrite(module) {
   const role = getRole();
-  if (role === 'Investor' || role === 'Administrator') return true;
-  if (role === 'OperationsManager') {
-    return ['operations', 'alerts', 'documents'].includes(module);
+  if (role === 'Administrator') return true;
+  /* Investor: view ops; write only on finance (capital etc.) and documents */
+  if (role === 'Investor') {
+    return ['finance', 'documents', 'reports'].includes(module);
+  }
+  if (role === 'OperationsManager' || role === 'OperatingPartner') {
+    return ['operations', 'finance', 'alerts', 'documents'].includes(module);
   }
   return false;
 }
 
+/** Ops can post expenses/sales; not capital, allocation, profit distributions */
+export function canWriteFinanceSection(sectionId) {
+  const role = getRole();
+  if (role === 'Administrator' || role === 'Investor') return true;
+  if (role === 'OperationsManager' || role === 'OperatingPartner') {
+    return ['expenses', 'revenue', 'summary'].includes(sectionId);
+  }
+  return false;
+}
+
+export function financeSectionsForRole() {
+  const role = getRole() || 'Viewer';
+  return FINANCE_SECTIONS_BY_ROLE[role] || FINANCE_SECTIONS_BY_ROLE.Viewer;
+}
+
+/** Investor is read-only on Operations data entry */
+export function canWriteOperations() {
+  const role = getRole();
+  return role === 'Administrator' || role === 'OperationsManager' || role === 'OperatingPartner';
+}
+
 export function canApprove() {
   return hasRole('Investor', 'Administrator');
+}
+
+export function isAdmin() {
+  return hasRole('Administrator');
+}
+
+export function isInvestor() {
+  return hasRole('Investor');
+}
+
+export function isOps() {
+  return hasRole('OperationsManager', 'OperatingPartner');
 }
 
 function persistSession(user, token) {
@@ -240,7 +290,13 @@ export default {
   hasRole,
   canAccess,
   canWrite,
+  canWriteFinanceSection,
+  canWriteOperations,
+  financeSectionsForRole,
   canApprove,
+  isAdmin,
+  isInvestor,
+  isOps,
   loadSession,
   loginWithCredentials,
   loginWithGoogleToken,

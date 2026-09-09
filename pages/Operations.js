@@ -6,7 +6,7 @@ import { renderDataTable } from '../components/DataTable.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { formatUGX, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
-import { canWrite } from '../js/auth.js';
+import { canWrite, canWriteOperations } from '../js/auth.js';
 import api from '../js/api.js';
 import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
 
@@ -370,7 +370,7 @@ export default {
 
   async render(root) {
     this.root = root;
-    this.writable = canWrite('operations');
+    this.writable = canWriteOperations();
 
     root.innerHTML =
       '<div class="page-header">' +
