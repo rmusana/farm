@@ -3,11 +3,26 @@ import { canAccess, getRole } from '../js/auth.js';
 
 const NAV = [
   {
-    section: 'Main',
+    section: 'Overview',
     items: [
-      { route: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
-      { route: 'operations', label: 'Operations', icon: 'clipboard-list' },
-      { route: 'finance', label: 'Finance', icon: 'wallet' },
+      { route: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' }
+    ]
+  },
+  {
+    section: 'Operations',
+    items: [
+      { route: 'operations', label: 'Operations', icon: 'clipboard-list' }
+    ]
+  },
+  {
+    section: 'Finance',
+    items: [
+      { route: 'finance', label: 'Finance', icon: 'wallet' }
+    ]
+  },
+  {
+    section: 'Insights',
+    items: [
       { route: 'reports', label: 'Reports', icon: 'file-bar-chart' },
       { route: 'alerts', label: 'Alerts', icon: 'bell', badge: true },
       { route: 'documents', label: 'Documents', icon: 'folder' }
@@ -26,7 +41,6 @@ export function renderSidebar(root) {
 
   function paint() {
     const collapsed = getState('sidebarCollapsed');
-    const role = getRole();
 
     const filtered = NAV.map((sec) => ({
       ...sec,
@@ -36,8 +50,13 @@ export function renderSidebar(root) {
     root.innerHTML = `
       <aside class="sidebar ${collapsed ? 'collapsed' : ''}" id="sidebar" aria-label="Main navigation">
         <div class="sidebar-brand">
-          <div class="sidebar-brand-mark">L5</div>
-          <span class="sidebar-brand-text">LUK54</span>
+          <div class="sidebar-brand-mark" aria-hidden="true">
+            <span>54</span>
+          </div>
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-text">LUK54</span>
+            <span class="sidebar-brand-sub">Jalo Dream Farm</span>
+          </div>
         </div>
         <nav class="sidebar-nav">
           ${filtered.map((sec) => `
@@ -62,34 +81,26 @@ export function renderSidebar(root) {
       </aside>
     `;
 
-    const sidebar = root.querySelector('#sidebar');
     root.querySelector('#sidebar-collapse-btn')?.addEventListener('click', () => {
-      const next = !getState('sidebarCollapsed');
-      setState({ sidebarCollapsed: next });
-      sidebar.classList.toggle('collapsed', next);
+      setState({ sidebarCollapsed: !getState('sidebarCollapsed') });
+    });
+
+    root.querySelectorAll('[data-nav]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const route = btn.getAttribute('data-nav');
+        if (route) window.location.hash = '#/' + route;
+        if (window.matchMedia('(max-width: 900px)').matches) {
+          setState({ sidebarOpen: false });
+        }
+      });
     });
 
     if (window.lucide) window.lucide.createIcons({ nodes: [root] });
   }
 
   paint();
-
-  subscribe('sidebarCollapsed', (val) => {
-    root.querySelector('#sidebar')?.classList.toggle('collapsed', val);
-  });
-
-  subscribe('user', paint);
-
-  subscribe('alerts', (alerts) => {
-    const badge = root.querySelector('#alert-badge');
-    if (!badge) return;
-    const open = (alerts || []).filter((a) => a.status === 'Open').length;
-    if (open > 0) {
-      badge.style.display = 'flex';
-      badge.textContent = open > 99 ? '99+' : String(open);
-    } else {
-      badge.style.display = 'none';
-    }
+  subscribe((key) => {
+    if (key === 'sidebarCollapsed' || key === 'role' || key === 'user' || key === '*') paint();
   });
 }
 

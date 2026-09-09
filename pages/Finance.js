@@ -219,15 +219,15 @@ export default {
       const s = res.data || {};
       content.innerHTML = `
         <div class="kpi-grid" style="margin-bottom:var(--space-5)">
-          <div class="card card-glass kpi-card"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${formatUGX(s.grossSalesRevenue)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Net Profit (Investor)</div><div class="kpi-value">${formatUGX(s.netProfitToInvestor)}</div>
+          <div class="card kpi-card"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${formatUGX(s.grossSalesRevenue)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Net Profit (Investor)</div><div class="kpi-value">${formatUGX(s.netProfitToInvestor)}</div>
             <div class="kpi-insight">${s.commercialReached ? 'Allocation active' : 'Allocation not yet active'}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value">${formatPercent(s.roi)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Capital Recovery</div><div class="kpi-value">${formatPercent(s.capitalRecovery)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Cash Position</div><div class="kpi-value">${formatUGX(s.cashPosition)}</div></div>
-          <div class="card card-glass kpi-card"><div class="kpi-label">Outstanding Funding</div><div class="kpi-value">${formatUGX(s.outstandingFunding)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value">${formatPercent(s.roi)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Capital Recovery</div><div class="kpi-value">${formatPercent(s.capitalRecovery)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Cash Position</div><div class="kpi-value">${formatUGX(s.cashPosition)}</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Outstanding Funding</div><div class="kpi-value">${formatUGX(s.outstandingFunding)}</div></div>
         </div>
         <div class="card" style="padding:var(--space-5)">
           <h3 style="margin-bottom:var(--space-3)">Revenue allocation</h3>

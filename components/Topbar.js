@@ -1,5 +1,5 @@
 import { getState, setState, subscribe } from '../js/state.js';
-import { logout, isAuthenticated, getRole, canWrite } from '../js/auth.js';
+import {  logout, isAuthenticated, getRole, canWrite , canWriteOperations } from '../js/auth.js';
 import { navigate } from '../js/router.js';
 import { openModal, closeModal, confirmDialog } from './Modal.js';
 import { toastSuccess, toastError } from './Toast.js';
@@ -166,8 +166,8 @@ export function renderTopbar(root) {
     const role = getRole();
     const initials = user?.name
       ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-      : 'RM';
-    const showQuickLog = canWrite('operations');
+      : '—';
+    const showQuickLog = (typeof canWriteOperations === 'function' ? canWriteOperations() : canWrite('operations'));
 
     root.innerHTML = `
       <header class="topbar" role="banner">
@@ -176,7 +176,7 @@ export function renderTopbar(root) {
             <i data-lucide="menu"></i>
           </button>
           <div class="breadcrumb" id="top-breadcrumb">
-            <span>LUK54</span>
+            <span class="breadcrumb-current">Overview</span>
           </div>
         </div>
         <div class="topbar-right">

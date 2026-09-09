@@ -239,3 +239,77 @@ p {
   text-transform: none;
   letter-spacing: 0;
 }
+
+
+/* Empty states — intentional, not broken */
+.empty-state {
+  text-align: center;
+  padding: var(--space-10) var(--space-6);
+}
+.empty-state-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+.empty-state-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0 auto;
+  max-width: 32ch;
+  line-height: var(--leading-relaxed);
+}
+
+/* Page header polish */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.page-header h1 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+}
+.breadcrumb {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+.breadcrumb-current {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Data tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+.data-table td {
+  padding: 0.7rem 0.85rem;
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.data-table tr:hover td {
+  background: rgba(27, 107, 74, 0.03);
+}
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

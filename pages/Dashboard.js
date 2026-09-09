@@ -87,7 +87,7 @@ export default {
         </div>
       </div>
 
-      <div id="dash-health" class="card card-glass" style="padding:var(--space-5);margin-bottom:var(--space-6)">
+      <div id="dash-health" class="card" style="padding:var(--space-5);margin-bottom:var(--space-6)">
         <div class="skeleton" style="height:72px;width:100%"></div>
       </div>
 
