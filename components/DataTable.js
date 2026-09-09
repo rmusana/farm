@@ -1,6 +1,20 @@
 /**
  * Reusable data table with optional row actions (e.g. Delete)
  */
+function escapeHtml(value) {
+  if (value == null) return '';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Reusable data table with optional row actions (e.g. Delete)
+ */
 export function renderDataTable(container, {
   columns,
   rows,
@@ -13,7 +27,7 @@ export function renderDataTable(container, {
 
   if (!rows || rows.length === 0) {
     container.innerHTML =
-      '<div class="empty-state"><p class="empty-state-title">' + emptyMessage + '</p></div>';
+      '<div class="empty-state"><p class="empty-state-title">' + escapeHtml(emptyMessage) + '</p></div>';
     return;
   }
 
@@ -41,11 +55,13 @@ export function renderDataTable(container, {
           let val = typeof c.accessor === 'function' ? c.accessor(row) : row[c.key];
           if (c.render) val = c.render(val, row);
           if (val == null || val === '') val = '—';
+          // Only allow trusted HTML from explicit renderTrusted; otherwise escape
+          const html = c.rawHtml ? String(val) : escapeHtml(val);
           return (
             '<td style="' +
             (c.align === 'right' ? 'text-align:right' : '') +
             '">' +
-            val +
+            html +
             '</td>'
           );
         })

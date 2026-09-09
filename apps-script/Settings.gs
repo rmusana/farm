@@ -4,6 +4,14 @@
 var Settings = {
   handle: function (body) {
     var action = (body.action || 'get').toString();
+    // Admin-only destructive / user management
+    if (action === 'userCreate' || action === 'userUpdate' || action === 'userDelete' ||
+        action === 'restore' || action === 'backup') {
+      if (!Auth.requireRole(body, ['Administrator'])) {
+        return Auth.deny('Administrator access required');
+      }
+    }
+
     if (action === 'get') return this.getAll(body);
     if (action === 'update') return this.update(body);
     if (action === 'users') return this.listUsers(body);

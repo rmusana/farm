@@ -77,15 +77,25 @@ function doPost(e) {
 }
 
 function requireAuthThen(body, fn) {
-  var action = (body.action || '').toString();
-  // Allow unauthenticated only for explicit public actions (none currently for these modules)
   var session = Auth.validateToken(body.token);
   if (!session) {
     return { success: false, error: 'Authentication required', status: 401 };
   }
   body._session = session;
   body._user = Auth.findUserById(session.userId);
+  if (!body._user || body._user.Active === false || body._user.Active === 'FALSE') {
+    return { success: false, error: 'Account inactive or not found', status: 401 };
+  }
+  body._role = Auth.normalizeRole(body._user.Role || body._user.role);
   return fn();
+}
+
+/** Helper used by modules */
+function requireRoles(body, roles) {
+  if (!Auth.requireRole(body, roles)) {
+    return Auth.deny('You do not have permission for this action');
+  }
+  return null;
 }
 
 function jsonResponse(obj) {
