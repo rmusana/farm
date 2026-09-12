@@ -28,22 +28,7 @@ export default {
                 </div>
               </div>
               <h2 class="login3d-headline">Your flock.<br/>Your capital.<br/><span>One clear view.</span></h2>
-              <p class="login3d-desc">Track 2,500 layers, feed, eggs and profit — without calling the farm. Built for investors, trusted by operators.</p>
-
-              <div class="login3d-preview" id="login-preview">
-                <div class="login3d-preview-card">
-                  <div class="login3d-preview-row"><span>Investment</span><strong>UGX 13,000,000</strong></div>
-                  <div class="login3d-preview-row"><span>Eggs today</span><strong>2,100 · 84%</strong></div>
-                  <div class="login3d-preview-row"><span>Cash position</span><strong style="color:var(--color-accent)">UGX 8.4M</strong></div>
-                  <div class="login3d-preview-bar"><span style="width:72%"></span></div>
-                  <div class="login3d-preview-foot">Live from your farm — updates daily at 08:00 EAT</div>
-                </div>
-                <div class="login3d-preview-card login3d-preview-card--secondary">
-                  <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted); margin-bottom:6px">Health score</div>
-                  <div style="font-size:28px; font-weight:800; color:#1a5c3e">84<span style="font-size:16px; font-weight:600">/100</span></div>
-                  <div style="font-size:12px; color:var(--color-text-secondary)">Production 88% · Mortality 0.8%</div>
-                </div>
-              </div>
+              <p class="login3d-desc" style="opacity:0.82; max-width:28ch">Secure access for your farm operations.</p>
 
               <div class="login3d-footnote">Secure · Role-based · Works on phone & desktop</div>
             </div>
@@ -73,7 +58,6 @@ export default {
 
                 <label style="display:flex;align-items:center;gap:8px; font-size:13px; color:var(--color-text-secondary); margin:2px 0 14px; cursor:pointer">
                   <input type="checkbox" id="remember-email" style="accent-color:var(--color-accent)" /> Remember email
-                  <span style="margin-left:auto; font-size:12px; color:var(--color-text-muted)">Demo: admin@rmusana.com / admin2026</span>
                 </label>
 
                 <div class="form-error form-error-global" id="login-error" hidden role="alert"></div>
@@ -82,10 +66,7 @@ export default {
                   <span class="login-submit-spinner" hidden></span>
                 </button>
 
-                <div style="display:flex; gap:8px; margin-top:12px">
-                  <button type="button" class="btn btn-secondary" id="demo-investor" style="flex:1; font-size:12px">Investor demo</button>
-                  <button type="button" class="btn btn-secondary" id="demo-ops" style="flex:1; font-size:12px">Operator demo</button>
-                </div>
+
               </form>
 
               <div class="login3d-trust">
@@ -198,16 +179,6 @@ export default {
         if (closed) closed.hidden = showing;
       });
     }
-
-    // demo fill
-    root.querySelector('#demo-investor')?.addEventListener('click', () => {
-      if (emailInput) emailInput.value = 'robert@luk54.com';
-      if (pwInput) pwInput.value = 'investor2026';
-    });
-    root.querySelector('#demo-ops')?.addEventListener('click', () => {
-      if (emailInput) emailInput.value = 'joseph@jalodreamfarm.com';
-      if (pwInput) pwInput.value = 'ops2026';
-    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
