@@ -1,5 +1,5 @@
 /**
- * Finance API – Capital, Expenses, Budget, Allocation (Clause 13), Profit, ROI, Forecast
+ * Finance API – Capital, Expenses, Budget, Allocation, Profit, ROI, Forecast
  */
 var Finance = {
   handle: function (body) {
@@ -241,7 +241,7 @@ var Finance = {
     } catch (e) {}
   },
 
-  /* ── Clause 13 Revenue Allocation ─────────────────────── */
+  /* ── Revenue Allocation ─────────────────────── */
 
   computeAllocation: function (body) {
     var pid = this.projectId(body);
@@ -264,11 +264,10 @@ var Finance = {
     var netProfit = 0;
 
     if (commercial) {
-      // Clause 13:
-      // (a) 50% Gross Sales → feed
-      // (b) remaining 50% = Gross Profit
-      // (c) 25% of Gross Profit → Operating Partner
-      // (d) balance → Investment Partner (Net Profit)
+      // 50% Gross Sales → feed
+      // remaining 50% = Gross Profit
+      // 25% of Gross Profit → Operating Partner
+      // balance → Investment Partner
       feedAllocation = grossSales * 0.5;
       grossProfit = grossSales * 0.5;
       operatingShare = grossProfit * 0.25;
@@ -301,7 +300,7 @@ var Finance = {
     var pid = this.projectId(body);
     var computed = this.computeAllocation(body).data;
     if (!computed.commercialReached) {
-      return { success: false, error: 'Commercial production not reached — Clause 13 allocation not active' };
+      return { success: false, error: 'Commercial production not reached — allocation not active' };
     }
 
     var sheet = getSheet('RevenueAllocation');

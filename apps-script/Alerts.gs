@@ -279,7 +279,7 @@ var Alerts = {
           pid, 'Critical',
           'Production below off-lay threshold',
           'Production has been below 80% for approximately ' + lowWeeks + ' consecutive weeks',
-          'Joint review required per Agreement Clause 4(c) / 11',
+          'Joint review recommended — production has been below threshold',
           '',
           'Production'
         );
