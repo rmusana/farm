@@ -1,0 +1,14 @@
+{
+  "name": "luk54-desktop",
+  "version": "1.2.0",
+  "description": "LUK54 — Jalo Dream Farm Desktop (free, offline PWA wrapper)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --mac --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

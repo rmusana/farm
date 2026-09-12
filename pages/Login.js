@@ -73,6 +73,11 @@ export default {
                 <span style="display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:block; flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encrypted</span>
                 <span>•</span><span>Role-based access</span>
               </div>
+
+              <div id="install-wrap" style="display:none; margin-top:14px; text-align:center">
+                <button class="btn btn-secondary" id="install-btn" style="width:100%; gap:8px; justify-content:center"><i data-lucide="download" style="width:14px;height:14px"></i> Install app — one tap</button>
+                <div class="u-text-xs u-text-muted" style="margin-top:6px">Works offline · No store needed</div>
+              </div>
             </div>
 
             <div style="text-align:center; margin-top:14px; font-size:12px; color:var(--color-text-muted)">Need access? Contact your administrator</div>
@@ -149,6 +154,32 @@ export default {
       const saved = localStorage.getItem('luk54_remember_email');
       if (saved && emailInput) { emailInput.value = saved; if (remember) remember.checked = true; }
     } catch {}
+
+    // PWA install — one tap (beforeinstallprompt)
+    let deferredPrompt = null;
+    const installWrap = root.querySelector('#install-wrap');
+    const installBtn = root.querySelector('#install-btn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installWrap) installWrap.style.display = 'block';
+      if (window.lucide) window.lucide.createIcons({ nodes: [installWrap] });
+    });
+    installBtn?.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch {}
+      deferredPrompt = null;
+      if (installWrap) installWrap.style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => {
+      if (installWrap) installWrap.style.display = 'none';
+      deferredPrompt = null;
+    });
+    // iOS fallback: show if standalone already
+    if (window.matchMedia('(display-mode: standalone)').matches && installWrap) {
+      installWrap.style.display = 'none';
+    }
 
     function clearErrors() {
       form.querySelectorAll('[data-error-for]').forEach((el) => { el.hidden = true; el.textContent = ''; });
