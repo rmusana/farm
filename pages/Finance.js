@@ -150,6 +150,8 @@ export default {
 
   async render(root) {
     this.root = root;
+    this.allowedSections = financeSectionsForRole();
+    if (this.allowedSections.indexOf(this.activeSection) < 0) this.activeSection = this.allowedSections[0] || 'summary';
     const writable = canWrite('finance') || canApprove();
 
     root.innerHTML = `
@@ -235,7 +237,8 @@ export default {
             </div>
           </div>
         </div>
-        <div class="kpi-grid" style="margin-bottom:var(--space-5)">
+          ${this.writable ? `<div style="margin-bottom:16px; display:flex; gap:8px; align-items:center"><button class="btn btn-primary" id="hero-add-capital" style="box-shadow:0 8px 20px rgba(26,92,62,0.22)"><i data-lucide="plus" style="width:14px;height:14px"></i> Add contribution</button><span class="u-text-xs u-text-muted">Investor logs capital here — visible to you</span></div>` : ''}
+          <div class="kpi-grid" style="margin-bottom:var(--space-5)">
           <div class="card kpi-card" style="border-left:3px solid var(--color-accent)"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${formatUGX(s.grossSalesRevenue)}</div></div>
@@ -258,6 +261,8 @@ export default {
             <div class="card kpi-card"><div class="kpi-label">Net to investor</div><div class="kpi-value" style="font-size:var(--text-lg)">${formatUGX(s.netProfitToInvestor)}</div></div>
           </div>
         </div>`;
+      content.querySelector('#hero-add-capital')?.addEventListener('click', () => this.formCapital());
+      if (window.lucide) window.lucide.createIcons({ nodes: [content] });
     } catch (err) {
       content.innerHTML = '<div class="empty-state"><p class="empty-state-desc">' + (err.message || 'Failed to load') + '</p></div>';
     }
