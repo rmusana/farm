@@ -9,6 +9,7 @@ import { toastSuccess, toastError } from '../components/Toast.js';
 import { canWrite, canWriteOperations } from '../js/auth.js';
 import api from '../js/api.js';
 import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
+import { renderLineChart } from '../components/Charts.js';
 
 const TABS = [
   { id: 'daily', label: 'Daily Log' },
@@ -441,7 +442,36 @@ export default {
     try {
       const res = await apiOrLocal('daily', 'list');
       const rows = res.data || [];
-      content.innerHTML = '<div id="daily-table"></div>';
+      // 3D gauge + sparkline header for world-class ops
+      const latest = rows[0] || {};
+      const birds = Number(latest.ClosingBirds ?? latest.OpeningBirds ?? 0);
+      const eggs = Number(latest.EggsCollected ?? (latest.EggsTrays ? latest.EggsTrays*30 : 0));
+      const pct = birds>0 && eggs>0 ? Math.round(eggs/birds*1000)/10 : null;
+      const pctColor = pct==null ? 'var(--color-text-muted)' : pct>=88 ? 'var(--color-positive)' : pct>=80 ? 'var(--color-caution)' : 'var(--color-critical)';
+      const recent = rows.slice(0,14).reverse();
+      content.innerHTML = `
+        <div class="card" style="padding:14px; margin-bottom:14px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border)">
+          <div style="position:relative; width:84px;height:84px; flex-shrink:0">
+            <svg viewBox="0 0 36 36" style="width:84px;height:84px; transform:rotate(-90deg)"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-border)" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${pctColor}" stroke-width="3" stroke-dasharray="${pct??0},100" stroke-linecap="round"/></svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column"><span style="font-weight:800; font-size:16px">${pct!=null?pct+'%':'—'}</span><span style="font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted)">Today</span></div>
+          </div>
+          <div style="flex:1; min-width:180px">
+            <div style="font-size:13px; font-weight:600">Daily production — 3D view</div>
+            <div class="u-text-xs u-text-secondary">${pct!=null ? (pct>=88?'Within 88–92% target':'Below target — review feed/health') : 'Log today to populate'} · ${birds? formatNumber(birds)+' birds':''}</div>
+            <div class="u-text-xs u-text-muted" style="margin-top:4px">Photo: attach via <a data-nav="documents" style="color:var(--color-accent); cursor:pointer">Documents → Upload</a> (link DocumentID in notes)</div>
+          </div>
+          <div style="width:220px; height:70px"><canvas id="daily-spark"></canvas></div>
+        </div>
+        <div id="daily-table"></div>`;
+      // sparkline
+      setTimeout(()=>{
+        const c = content.querySelector('#daily-spark');
+        if(c && window.Chart && recent.length){
+          const labels = recent.map(r=> String(r.Date||r.date||'').slice(5,10));
+          const data = recent.map(r=>{ const b=Number(r.ClosingBirds||r.OpeningBirds||1); const e=Number(r.EggsCollected||0); return b? Math.round(e/b*1000)/10 : 0; });
+          renderLineChart(c, {labels, datasets:[{label:'Prod %', data, borderColor:pctColor, backgroundColor:pctColor+'14', fill:true, tension:0.35, pointRadius:0}] , options:{ plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false, min:0, max:100}}, animation:{duration:400}}});
+        }
+      }, 80);
       renderDataTable(content.querySelector('#daily-table'), {
         columns: [
           { key: 'Date', label: 'Date', accessor: function (r) { return formatDate(r.Date || r.date); } },
@@ -865,7 +895,24 @@ export default {
       const inv = invRes.data || [];
       const rows = listRes.data || [];
       const mixes = mixRes.data || [];
-      content.innerHTML =
+      // feed efficiency: kg per dozen & cost per tray (world-class)
+      let efficiencyHtml = '';
+      try{
+        const dailyRes = await apiOrLocal('daily','list');
+        const daily = (dailyRes.data||[]).slice(0,7);
+        let kg=0, eggs=0, cost=0;
+        daily.forEach(r=>{ kg+= feedTotalKg(r); eggs+= Number(r.EggsCollected|| (r.EggsTrays? r.EggsTrays*30:0)); });
+        const avgKgPerDozen = eggs? Math.round(kg/(eggs/12)*100)/100 : null;
+        const avgUnit = inv.length ? inv.reduce((s,r)=> s+Number(r.UnitCost||0),0)/inv.length : 1294;
+        const costPerTray = avgKgPerDozen!=null ? Math.round(avgKgPerDozen*avgUnit) : null;
+        const optimizer = avgKgPerDozen!=null && avgKgPerDozen>2.0 ? 'Reduce Brand, increase Concentrate/Soya' : 'Formulation balanced';
+        efficiencyHtml = `<div class="card" style="padding:12px; margin-bottom:14px; display:flex; gap:12px; flex-wrap:wrap; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle))">
+          <div style="flex:1; min-width:160px"><div class="u-text-xs u-text-muted">Feed efficiency</div><div style="font-weight:700">${avgKgPerDozen!=null? avgKgPerDozen+' kg / dozen' : '—'}</div><div class="u-text-xs ${avgKgPerDozen!=null && avgKgPerDozen<=1.9 ? 'u-text-positive' : 'u-text-caution'}">${avgKgPerDozen!=null? (avgKgPerDozen<=1.6?'Excellent':avgKgPerDozen<=1.9?'Good':'Review mix') : ''}</div></div>
+          <div style="flex:1; min-width:160px"><div class="u-text-xs u-text-muted">Cost per tray</div><div style="font-weight:700">${costPerTray!=null? formatUGX(costPerTray): '—'}</div><div class="u-text-xs u-text-muted">avg ${formatUGX(avgUnit)}/kg</div></div>
+          <div style="flex:1; min-width:200px"><div class="u-text-xs u-text-muted">Optimizer hint</div><div style="font-size:12px">${optimizer}</div></div>
+        </div>`;
+      } catch(e){ efficiencyHtml=''; }
+      content.innerHTML = efficiencyHtml +
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Stock</h3>' +
         '<div id="feed-inv" style="margin-bottom:var(--space-5)"></div>' +
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Weekly mix / formulation</h3>' +
@@ -1368,7 +1415,23 @@ export default {
       const eventsRes = await apiOrLocal('health', 'list');
       const schedule = schedRes.data || [];
       const events = eventsRes.data || [];
-      content.innerHTML =
+      // health calendar month view
+      const today = new Date();
+      const ym = today.toISOString().slice(0,7);
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const startDow = first.getDay(); // 0 Sun
+      const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+      const plannedSet = new Set(schedule.filter(s=> s.PlannedDate||s.plannedDate).map(s=> String(s.PlannedDate||s.plannedDate).slice(0,10)));
+      let calHtml = `<div class="card" style="padding:14px; margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3 class="u-text-sm u-font-semibold">Calendar — ${ym}</h3><span class="u-text-xs u-text-muted">Vaccination planned dates highlighted</span></div><div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:11px; text-align:center"><div style="color:var(--color-text-muted)">Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>`;
+      for(let i=0;i<startDow;i++) calHtml+=`<div></div>`;
+      for(let d=1; d<=daysInMonth; d++){
+        const iso = `${ym}-${String(d).padStart(2,'0')}`;
+        const isPlanned = plannedSet.has(iso);
+        const isToday = iso===today.toISOString().slice(0,10);
+        calHtml+=`<div style="height:28px; display:grid; place-items:center; border-radius:8px; ${isToday?'background:var(--color-accent); color:#fff; font-weight:700':''} ${isPlanned && !isToday?'background:var(--color-accent-soft); border:1px solid var(--color-accent); color:var(--color-accent); font-weight:600':''} ${!isPlanned && !isToday?'border:1px solid var(--color-border)':''}">${d}${isPlanned?' •':''}</div>`;
+      }
+      calHtml+=`</div><div class="u-text-xs u-text-muted" style="margin-top:8px"><span style="display:inline-block; width:10px;height:10px; background:var(--color-accent-soft); border:1px solid var(--color-accent); border-radius:4px; vertical-align:middle; margin-right:4px"></span> Vaccination planned · Drag not yet — log treatment to mark completed</div></div>`;
+      content.innerHTML = calHtml +
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Vaccination schedule</h3>' +
         '<div id="sched-table" style="margin-bottom:var(--space-5)"></div>' +
         '<h3 class="u-text-sm u-font-semibold" style="margin-bottom:var(--space-3)">Treatments & events</h3>' +
