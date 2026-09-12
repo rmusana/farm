@@ -1,1 +1,4 @@
 .aider*
+.clasp.json
+.env
+apps-script/.clasp.json

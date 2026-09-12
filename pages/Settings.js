@@ -6,7 +6,7 @@ import { renderDataTable } from '../components/DataTable.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { setState, getState } from '../js/state.js';
-import { canApprove, getRole, hasRole } from '../js/auth.js';
+import { canApprove, getRole, hasRole, roleLabel } from '../js/auth.js';
 import api from '../js/api.js';
 
 const SECTIONS = [
@@ -246,10 +246,10 @@ export default {
         users = res.data || [];
       } else {
         users = [
-          { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Robert Musana', Role: 'Investor', Active: true },
-          { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Moses Odong', Role: 'Investor', Active: true },
-          { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Jalo Dream Farm', Role: 'OperationsManager', Active: true },
-          { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'System Admin', Role: 'Administrator', Active: true }
+          { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
+          { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
+          { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', Active: true },
+          { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', Active: true }
         ];
       }
     } catch (err) {
@@ -270,13 +270,19 @@ export default {
 
     renderDataTable(panel.querySelector('#users-table'), {
       columns: [
-        { key: 'Name', label: 'Name' },
-        { key: 'Email', label: 'Email' },
-        { key: 'Role', label: 'Role', accessor: (r) => `<span class="badge badge-accent">${r.Role}</span>` },
-        { key: 'Active', label: 'Active', accessor: (r) => (r.Active === false || r.Active === 'FALSE') ? 'No' : 'Yes' }
+        { key: 'Name', label: 'Name', accessor: function (r) { return r.Name || r.name || '—'; } },
+        { key: 'Email', label: 'Email', accessor: function (r) { return r.Email || r.email || '—'; } },
+        { key: 'Role', label: 'Role', accessor: function (r) { return roleLabel(r.Role || r.role); } },
+        { key: 'Active', label: 'Active', accessor: function (r) {
+          return (r.Active === true || r.Active === 'TRUE' || r.Active === 'Yes') ? 'Yes' : 'No';
+        } }
       ],
       rows: users,
-      emptyMessage: 'No users.'
+      emptyMessage: 'No users found.',
+      actions: canApprove() ? [{ id: 'edit', label: 'Edit', icon: 'pencil' }] : null,
+      onAction: function (action, row) {
+        if (action === 'edit') this.openEditUser(row);
+      }.bind(this)
     });
 
     panel.querySelector('#btn-add-user')?.addEventListener('click', () => this.formUser());
@@ -306,6 +312,67 @@ export default {
         this.renderPanel();
       } catch (err) {
         toastError(err.message || 'Create failed');
+      }
+    });
+  },
+
+  openEditUser(row) {
+    const id = row.UserID || row.userId || row.id;
+    const name = row.Name || row.name || '';
+    const email = row.Email || row.email || '';
+    const role = row.Role || row.role || 'Viewer';
+    const active = row.Active === true || row.Active === 'TRUE' || row.Active === 'Yes';
+    openModal({
+      title: 'Edit user',
+      content: `
+        <form id="form-edit-user">
+          ${field({ name: 'name', label: 'Display name', value: name, required: true })}
+          ${field({ name: 'email', label: 'Email (login)', type: 'email', value: email, required: true })}
+          ${field({ name: 'role', label: 'Role', type: 'select', required: true, value: role, options: ROLES })}
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;gap:var(--space-2)">
+              <input type="checkbox" name="active" ${active ? 'checked' : ''} />
+              Active account
+            </label>
+          </div>
+          ${field({ name: 'password', label: 'New password (optional)', type: 'password', hint: 'Leave blank to keep the current password. Minimum 6 characters if set.' })}
+        </form>
+      `,
+      footer: `
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-save-user">Save changes</button>
+      `
+    });
+    document.getElementById('btn-save-user')?.addEventListener('click', async () => {
+      const form = document.getElementById('form-edit-user');
+      if (!validateRequired(form, ['name', 'email', 'role'])) return;
+      const data = serializeForm(form);
+      const activeChecked = form.querySelector('[name="active"]')?.checked;
+      if (data.password && String(data.password).length > 0 && String(data.password).length < 6) {
+        toastError('Password must be at least 6 characters');
+        return;
+      }
+      const btn = document.getElementById('btn-save-user');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+      try {
+        await api.request('/settings', {
+          body: {
+            module: 'settings',
+            action: 'userUpdate',
+            userId: id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            active: !!activeChecked,
+            password: data.password || undefined
+          }
+        });
+        toastSuccess('User updated');
+        closeModal();
+        this.renderPanel();
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+        toastError(err.message || 'Update failed');
       }
     });
   },
