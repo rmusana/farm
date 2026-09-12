@@ -18,15 +18,22 @@ var Alerts = {
 
   list: function (body) {
     var pid = this.projectId(body);
-    // Run engine on list to keep alerts fresh
     try { this.runEngine(body); } catch (e) {}
-
     var rows = this.rows(pid);
-    var status = body.status; // Open | Resolved | all
+    var status = body.status;
     if (status && status !== 'all') {
       rows = rows.filter(function (r) { return r.Status === status; });
     } else if (!status) {
       rows = rows.filter(function (r) { return r.Status === 'Open' || r.Status === 'Acknowledged'; });
+    }
+    // Role-based filtering: Investor sees finance/reporting/production, Ops sees operational
+    var role = body._user ? Auth.normalizeRole(body._user.Role || body._user.role) : 'Viewer';
+    if (role === 'Investor') {
+      var allowed = { Finance: 1, Reporting: 1, Production: 1 };
+      rows = rows.filter(function (r) { return allowed[r.Type]; });
+    } else if (role === 'OperationsManager') {
+      var allowedOps = { Inventory: 1, Vaccination: 1, Mortality: 1, Production: 1, Operations: 1, System: 1 };
+      rows = rows.filter(function (r) { return allowedOps[r.Type]; });
     }
     rows.sort(function (a, b) {
       var order = { Critical: 0, High: 1, Medium: 2, Low: 3 };
