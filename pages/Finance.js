@@ -217,12 +217,29 @@ export default {
     try {
       const res = await finApi('summary', 'get');
       const s = res.data || {};
+      const fundedPct = s.budgetTotal ? Math.min(100, Math.round(s.totalInvestment / s.budgetTotal * 100)) : 0;
       content.innerHTML = `
+        <div class="card" style="padding:16px; margin-bottom:16px; background: linear-gradient(135deg, #0f2e22 0%, #1a5c3e 100%); color:#fff; border:none; box-shadow: var(--shadow-lg); position:relative; overflow:hidden">
+          <div style="position:absolute; right:-20px; top:-20px; width:220px; height:220px; background: radial-gradient(circle, rgba(255,255,255,0.09), transparent 60%); pointer-events:none"></div>
+          <div style="position:relative; display:flex; gap:16px; align-items:center; flex-wrap:wrap">
+            <div style="flex:1; min-width:220px">
+              <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; opacity:0.8">Funding progress</div>
+              <div style="font-size:22px; font-weight:800; margin-top:4px">${fundedPct}% funded · ${formatUGX(s.totalInvestment)} of ${formatUGX(s.budgetTotal)}</div>
+              <div style="height:8px; background:rgba(255,255,255,0.18); border-radius:999px; overflow:hidden; margin-top:10px"><div style="height:100%; width:${fundedPct}%; background:#fff; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,0.15); transition: width 600ms var(--ease-out)"></div></div>
+              <div style="font-size:11px; opacity:0.75; margin-top:6px">${s.commercialReached ? '● Allocation active' : '○ Pre-commercial'} · Outstanding ${formatUGX(s.outstandingFunding)}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.96); color:#141916; border-radius:14px; padding:14px; min-width:200px; box-shadow:0 12px 28px rgba(0,0,0,0.18)">
+              <div style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted)">Cash position</div>
+              <div style="font-size:20px; font-weight:800">${formatUGX(s.cashPosition)}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary)">Net profit ${formatUGX(s.netProfitToInvestor)} · ROI ${formatPercent(s.roi)}</div>
+            </div>
+          </div>
+        </div>
         <div class="kpi-grid" style="margin-bottom:var(--space-5)">
-          <div class="card kpi-card"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
+          <div class="card kpi-card" style="border-left:3px solid var(--color-accent)"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${formatUGX(s.grossSalesRevenue)}</div></div>
-          <div class="card kpi-card"><div class="kpi-label">Net Profit (Investor)</div><div class="kpi-value">${formatUGX(s.netProfitToInvestor)}</div>
+          <div class="card kpi-card" style="box-shadow: var(--shadow-md); border-color:var(--color-accent)"><div class="kpi-label">Net Profit (Investor)</div><div class="kpi-value">${formatUGX(s.netProfitToInvestor)}</div>
             <div class="kpi-insight">${s.commercialReached ? 'Allocation active' : 'Allocation not yet active'}</div></div>
           <div class="card kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value">${formatPercent(s.roi)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Capital Recovery</div><div class="kpi-value">${formatPercent(s.capitalRecovery)}</div></div>

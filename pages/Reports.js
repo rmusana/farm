@@ -243,9 +243,21 @@ export default {
         </div>
       </div>
 
+      <div class="card" style="padding:16px; margin-bottom:16px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center">
+        <div style="width:44px;height:44px; border-radius:12px; background: var(--color-accent); color:#fff; display:grid; place-items:center; flex-shrink:0"><i data-lucide="file-bar-chart" style="width:22px;height:22px"></i></div>
+        <div><div style="font-weight:700; font-size:14px">Generate any report — one click</div><div class="u-text-xs u-text-muted">Monthly Statement · Production · Finance · Executive — farm-branded, print-ready</div></div>
+        <div style="margin-left:auto; font-size:11px; color:var(--color-text-muted)">Period: <strong id="hero-period">${currentMonth()}</strong></div>
+      </div>
+
+      <style>
+        .card[data-report]{ transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), border-color 160ms; }
+        .card[data-report]:hover{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent); }
+        .card[data-report]:active{ transform: translateY(-1px); }
+      </style>
+
       <div class="kpi-grid" id="report-cards" style="margin-bottom:var(--space-6)">
         ${REPORT_TYPES.map((t) => `
-          <button class="card" data-report="${t.id}" style="padding:var(--space-5);text-align:left;cursor:pointer;border:1px solid var(--color-border);background:var(--color-bg-elevated)">
+          <button class="card" data-report="${t.id}" style="padding:var(--space-5);text-align:left;cursor:pointer;border:1px solid var(--color-border);background:var(--color-bg-elevated); position:relative; overflow:hidden">
             <div style="display:flex;align-items:center;gap:var(--space-3)">
               <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
                 <i data-lucide="${t.icon}" style="width:20px;height:20px"></i>
