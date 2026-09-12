@@ -382,11 +382,11 @@ var Dashboard = {
         // Fallback from known budget totals (birds + brooder + feeds estimate)
         totalBudget = 13000000 + 4215000 + 35634172;
       }
-      var adherence = totalBudget > 0 ? Math.round((1 - Math.abs(spent - totalBudget * 0.5) / totalBudget) * 100) : 70;
-      // Simpler: if under budget relative to time, score higher – use spent/budget inverted mild
+      var adherence;
       if (spent === 0) adherence = 70;
+      else if (totalBudget === 0) adherence = 70;
       else adherence = Math.min(100, Math.max(0, 100 - Math.abs((spent / totalBudget) - 0.5) * 100));
-      return { totalBudget: totalBudget, spent: spent, adherence: adherence };
+      return { totalBudget: totalBudget, spent: spent, adherence: Math.round(adherence) };
     } catch (e) {
       return { totalBudget: 52849172, spent: 0, adherence: 70 };
     }

@@ -489,6 +489,9 @@ var Finance = {
 
     var fundingNeed = Math.max(0, projectedExpenses - summary.cashPosition - projectedNet);
 
+    var projectedCash = summary.commercialReached
+      ? Math.round(summary.cashPosition - projectedExpenses + projectedNet)
+      : Math.round(summary.cashPosition - projectedExpenses + projectedRevenue);
     return {
       success: true,
       data: {
@@ -496,7 +499,7 @@ var Finance = {
         projectedRevenue: Math.round(projectedRevenue),
         projectedExpenses: Math.round(projectedExpenses),
         projectedNetProfit: Math.round(projectedNet),
-        projectedCash: Math.round(summary.cashPosition - projectedExpenses + projectedNet + projectedRevenue * (summary.commercialReached ? 0 : 0)),
+        projectedCash: projectedCash,
         fundingRequired: Math.round(fundingNeed),
         basedOnDays: 30,
         commercialReached: summary.commercialReached

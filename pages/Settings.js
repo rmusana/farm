@@ -268,6 +268,8 @@ export default {
       </p>
     `;
 
+    var me = getState('user');
+    var meId = me && (me.UserID || me.userId || me.id);
     renderDataTable(panel.querySelector('#users-table'), {
       columns: [
         { key: 'Name', label: 'Name', accessor: function (r) { return r.Name || r.name || '—'; } },
@@ -279,9 +281,20 @@ export default {
       ],
       rows: users,
       emptyMessage: 'No users found.',
-      actions: canApprove() ? [{ id: 'edit', label: 'Edit', icon: 'pencil' }] : null,
-      onAction: function (action, row) {
+      actions: canApprove() ? [{ id: 'edit', label: 'Edit', icon: 'pencil' }, { id: 'delete', label: 'Delete', icon: 'trash-2', danger: true }] : null,
+      onAction: async function (action, row) {
         if (action === 'edit') this.openEditUser(row);
+        if (action === 'delete') {
+          var id = row.UserID || row.userId || row.id;
+          if (String(id) === String(meId)) { toastError('Cannot delete your own account'); return; }
+          var ok = await confirmDialog({ title: 'Delete user', message: 'Delete ' + (row.Name || row.Email) + '? This cannot be undone.', confirmLabel: 'Delete', danger: true });
+          if (!ok) return;
+          try {
+            await api.request('/settings', { body: { module: 'settings', action: 'userDelete', userId: id } });
+            toastSuccess('User deleted');
+            this.renderPanel();
+          } catch (err) { toastError(err.message || 'Delete failed'); }
+        }
       }.bind(this)
     });
 
@@ -293,7 +306,7 @@ export default {
       ${field({ name: 'name', label: 'Name', required: true })}
       ${field({ name: 'email', label: 'Email', type: 'email', required: true })}
       ${field({ name: 'role', label: 'Role', type: 'select', required: true, options: ROLES })}
-      ${field({ name: 'password', label: 'Temporary password', type: 'password', required: true })}
+      ${field({ name: 'password', label: 'Temporary password', type: 'password', required: true, hint: 'Min 6 characters — user should change on first login' })}
     </form>`;
     openModal({
       title: 'Add user',
@@ -303,14 +316,19 @@ export default {
     document.getElementById('save-user')?.addEventListener('click', async () => {
       const form = document.getElementById('form-user');
       if (!validateRequired(form, ['name', 'email', 'role', 'password'])) return;
+      const d = serializeForm(form);
+      if (String(d.password).length < 6) { toastError('Password must be at least 6 characters'); return; }
+      const btn = document.getElementById('save-user');
+      if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
       try {
         if (window.RMUSANA_API_URL) {
-          await api.request('/settings', { body: { module: 'settings', action: 'userCreate', ...serializeForm(form) } });
+          await api.request('/settings', { body: { module: 'settings', action: 'userCreate', name: d.name, email: d.email, role: d.role, password: d.password } });
         }
         toastSuccess('User created');
         closeModal();
         this.renderPanel();
       } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
         toastError(err.message || 'Create failed');
       }
     });

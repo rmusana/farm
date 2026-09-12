@@ -17,6 +17,7 @@ var Settings = {
     if (action === 'users') return this.listUsers(body);
     if (action === 'userCreate') return this.createUser(body);
     if (action === 'userUpdate') return this.updateUser(body);
+    if (action === 'userDelete') return this.deleteUser(body);
     if (action === 'backup') return this.backup(body);
     if (action === 'restore') return this.restore(body);
     return { success: false, error: 'Unknown settings action' };
@@ -167,6 +168,25 @@ var Settings = {
           sheet.getRange(i + 1, headers.indexOf('PasswordHash') + 1).setValue(Auth.hashPassword(body.password, body.userId));
         }
         return { success: true, message: 'User updated' };
+      }
+    }
+    return { success: false, error: 'User not found' };
+  },
+
+  deleteUser: function (body) {
+    Utils.requireFields(body, ['userId']);
+    var sheet = getSheet('Users');
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, error: 'Not found' };
+    var headers = data[0];
+    var idCol = headers.indexOf('UserID');
+    // prevent self-delete
+    var actor = body._user && (body._user.UserID || body._user.userId);
+    if (String(actor) === String(body.userId)) return { success: false, error: 'Cannot delete your own account' };
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(body.userId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'User deleted' };
       }
     }
     return { success: false, error: 'User not found' };

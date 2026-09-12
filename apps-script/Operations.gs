@@ -128,7 +128,7 @@ var Operations = {
       EggsTrays: Utils.toNumber(body.eggsTrays) || (Utils.toNumber(body.eggsCollected) / 30),
       FeedIssuedKg: Utils.toNumber(body.feedIssuedKg != null ? body.feedIssuedKg : body.feedTotalKg),
       ProductionPct: (function () {
-        var birds = Utils.toNumber(body.openingBirds);
+        var birds = closing || Utils.toNumber(body.openingBirds);
         var eggs = Utils.toNumber(body.eggsCollected);
         if (!eggs || !birds) return '';
         return Math.round((eggs / birds) * 1000) / 10;
@@ -602,7 +602,7 @@ var Operations = {
     });
     if (missing.length) {
       var start = sheet.getLastColumn() + 1;
-      sheet.getRange(1, start, 1, start + missing.length - 1).setValues([missing]);
+      sheet.getRange(1, start, 1, missing.length).setValues([missing]);
     }
   },
 
