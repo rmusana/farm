@@ -105,7 +105,7 @@ var Operations = {
     Utils.requireFields(body, ['date']);
     var pid = Operations.projectId(body);
     var sheet = getSheet('DailyProduction');
-    this.ensureHeaders(sheet, [
+    Operations.ensureHeaders(sheet, [
       'RecordID', 'ProjectID', 'Date', 'OpeningBirds', 'Mortality', 'ClosingBirds',
       'EggsCollected', 'Breakages', 'FeedBrandKg', 'FeedHendrixKg', 'FeedLimeKg',
       'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg', 'Notes', 'DocumentIDs', 'CreatedBy', 'CreatedAt',
