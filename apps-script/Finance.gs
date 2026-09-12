@@ -14,9 +14,11 @@ var Finance = {
           return Auth.deny('Investment Partner or Administrator access required');
         }
       } else if (resource === 'expenses') {
-        // Expenses: ops or admin or investor
-        if (!Auth.requireRole(body, ['Administrator', 'Investor', 'OperationsManager', 'OperatingPartner'])) {
-          return Auth.deny('Forbidden');
+        // Expenses: day-to-day operational spend — Operating Partner/Admin only (Investor views)
+        if (action === 'list') {
+          if (!Auth.requireRole(body, ['Administrator', 'Investor', 'OperationsManager', 'OperatingPartner'])) return Auth.deny('Forbidden');
+        } else {
+          if (!Auth.requireRole(body, ['Administrator', 'OperationsManager', 'OperatingPartner'])) return Auth.deny('Operating Partner or Administrator required');
         }
       } else {
         if (!Auth.requireRole(body, ['Administrator', 'Investor', 'OperationsManager', 'OperatingPartner'])) {

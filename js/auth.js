@@ -109,7 +109,11 @@ export function canWrite(module) {
 /** Ops can post expenses/sales; not capital, allocation, profit distributions */
 export function canWriteFinanceSection(sectionId) {
   const role = getRole();
-  if (role === 'Administrator' || role === 'Investor') return true;
+  if (role === 'Administrator') return true;
+  // Investor funds (capital/allocation/profit) but does not log day-to-day expenses — Ops does
+  if (role === 'Investor') {
+    return ['capital', 'allocation', 'profit', 'summary', 'cashflow', 'forecast', 'disbursed', 'revenue'].includes(sectionId);
+  }
   if (role === 'OperationsManager' || role === 'OperatingPartner') {
     return ['expenses', 'revenue', 'summary'].includes(sectionId);
   }
