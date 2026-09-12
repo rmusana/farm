@@ -59,10 +59,10 @@ var Settings = {
       off_lay_pct: 80,
       off_lay_weeks: 4,
       statement_due_day: 10,
-      investor_name: 'Robert Musana / Moses Odong',
+      investor_name: 'Investment Partner',
       investor_emails: 'robert@luk54.com,moses@luk54.com',
       investor_phone: '',
-      manager_name: 'Jalo Dream Farm',
+      manager_name: 'Operating Partner',
       manager_emails: 'joseph@jalodreamfarm.com',
       manager_phone: '',
       alert_emails: 'robert@luk54.com,moses@luk54.com',
@@ -151,10 +151,19 @@ var Settings = {
     var idCol = headers.indexOf('UserID');
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][idCol]) === String(body.userId)) {
-        if (body.name != null && headers.indexOf('Name') >= 0) sheet.getRange(i + 1, headers.indexOf('Name') + 1).setValue(body.name);
-        if (body.role != null && headers.indexOf('Role') >= 0) sheet.getRange(i + 1, headers.indexOf('Role') + 1).setValue(body.role);
-        if (body.active != null && headers.indexOf('Active') >= 0) sheet.getRange(i + 1, headers.indexOf('Active') + 1).setValue(body.active);
-        if (body.password && headers.indexOf('PasswordHash') >= 0) {
+        if (body.name != null && headers.indexOf('Name') >= 0) {
+          sheet.getRange(i + 1, headers.indexOf('Name') + 1).setValue(Utils.sanitizeCell(body.name));
+        }
+        if (body.email != null && headers.indexOf('Email') >= 0) {
+          sheet.getRange(i + 1, headers.indexOf('Email') + 1).setValue(String(body.email).toLowerCase().trim());
+        }
+        if (body.role != null && headers.indexOf('Role') >= 0) {
+          sheet.getRange(i + 1, headers.indexOf('Role') + 1).setValue(body.role);
+        }
+        if (body.active != null && headers.indexOf('Active') >= 0) {
+          sheet.getRange(i + 1, headers.indexOf('Active') + 1).setValue(body.active === true || body.active === 'true' || body.active === 'Yes');
+        }
+        if (body.password && String(body.password).length >= 6 && headers.indexOf('PasswordHash') >= 0) {
           sheet.getRange(i + 1, headers.indexOf('PasswordHash') + 1).setValue(Auth.hashPassword(body.password, body.userId));
         }
         return { success: true, message: 'User updated' };

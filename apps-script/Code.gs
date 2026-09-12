@@ -1,21 +1,21 @@
 /**
- * RMUSANA – Google Apps Script entry point
+ * LUK54 – Google Apps Script entry point
  * Web App doGet / doPost router
  *
  * Deploy as Web App:
  *  - Execute as: Me
- *  - Who has access: Anyone (or domain)
- * Then set SPREADSHEET_ID and paste the Web App URL into window.RMUSANA_API_URL
+ *  - Who has access: Anyone
+ * Then paste the Web App URL into window.RMUSANA_API_URL (js/config.js)
  */
 
-var SPREADSHEET_ID = ''; // Set after creating the Google Sheet
-var DRIVE_ROOT_FOLDER_ID = ''; // Set after creating Drive folder
+var SPREADSHEET_ID = '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME';
+var DRIVE_ROOT_FOLDER_ID = '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6';
 
 function doGet(e) {
   return jsonResponse({
     success: true,
-    message: 'RMUSANA API is online',
-    version: '1.0'
+    message: 'LUK54 API is online',
+    version: '1.1'
   });
 }
 
@@ -26,24 +26,14 @@ function doPost(e) {
       body = JSON.parse(e.postData.contents);
     }
 
-    // Extract Bearer token from header if present
     var token = null;
     if (e && e.parameter && e.parameter.token) {
       token = e.parameter.token;
     }
-    // Apps Script does not expose custom headers easily on web apps;
-    // frontend also sends token in body
     if (body.token) token = body.token;
     if (!token && body.Authorization) {
       token = String(body.Authorization).replace(/^Bearer\s+/i, '');
     }
-    // Parse from request headers when available (some deployments)
-    try {
-      if (e && e.postData) {
-        // no standard header map – rely on body
-      }
-    } catch (ignore) {}
-
     if (token) body.token = token;
 
     var module = (body.module || '').toString().toLowerCase();
@@ -67,7 +57,7 @@ function doPost(e) {
     } else if (module === 'settings' || path.indexOf('settings') >= 0) {
       result = requireAuthThen(body, function () { return Settings.handle(body); });
     } else {
-      result = { success: true, message: 'RMUSANA API ready', received: Object.keys(body) };
+      result = { success: true, message: 'LUK54 API ready', received: Object.keys(body) };
     }
 
     return jsonResponse(result);
@@ -90,7 +80,7 @@ function requireAuthThen(body, fn) {
   return fn();
 }
 
-/** Helper used by modules */
+/** Helper used by modules — returns deny object or null if allowed */
 function requireRoles(body, roles) {
   if (!Auth.requireRole(body, roles)) {
     return Auth.deny('You do not have permission for this action');
@@ -122,7 +112,7 @@ function getSheet(name) {
 
 /**
  * One-time setup: create Users sheet and seed accounts.
- * Run from the Apps Script editor.
+ * Run from the Apps Script editor: setupAuth()
  */
 function setupAuth() {
   return Auth.seedUsers();
