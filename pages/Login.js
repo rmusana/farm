@@ -1,5 +1,6 @@
 /**
- * LUK54 Login — split screen, warm-white panel, premium product shell
+ * LUK54 — World-class 3D Login · farm investment platform
+ * Clean, premium, farm earth tones · 3D tilt, depth, micro-interactions
  */
 import { loginWithCredentials } from '../js/auth.js';
 import { navigate } from '../js/router.js';
@@ -8,92 +9,132 @@ import { toastError, toastSuccess } from '../components/Toast.js';
 export default {
   async render(root) {
     root.innerHTML = `
-      <div class="login-page">
-        <aside class="login-visual" aria-hidden="true">
-          <div class="login-visual-shade"></div>
-          <div class="login-visual-content">
-            <p class="login-brand-name">LUK54</p>
-            <p class="login-brand-sub">Jalo Dream Farm</p>
-            <p class="login-brand-desc">Investment &amp; Farm Operations Platform</p>
-          </div>
-        </aside>
+      <div class="login3d">
+        <div class="login3d-bg" aria-hidden="true">
+          <div class="login3d-orb login3d-orb--1"></div>
+          <div class="login3d-orb login3d-orb--2"></div>
+          <div class="login3d-orb login3d-orb--3"></div>
+          <div class="login3d-grid"></div>
+        </div>
 
-        <section class="login-panel">
-          <div class="login-panel-inner">
-            <header class="login-header">
-              <h1 class="login-title">Welcome back</h1>
-              <p class="login-subtitle">Sign in to your account to continue</p>
-            </header>
-
-            <form id="login-form" class="login-form" novalidate>
-              <div class="form-group">
-                <label class="form-label" for="field-email">Email</label>
-                <input
-                  class="form-input"
-                  type="email"
-                  name="email"
-                  id="field-email"
-                  placeholder="name@example.com"
-                  required
-                  autocomplete="username"
-                  inputmode="email"
-                  spellcheck="false"
-                />
-                <div class="form-error" data-error-for="email" hidden></div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="field-password">Password</label>
-                <div class="password-field">
-                  <input
-                    class="form-input"
-                    type="password"
-                    name="password"
-                    id="field-password"
-                    placeholder="Enter your password"
-                    required
-                    autocomplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    class="password-toggle"
-                    id="password-toggle"
-                    aria-label="Show password"
-                    title="Show password"
-                  >
-                    <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
-                      <path d="M3 3l18 18"/>
-                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/>
-                      <path d="M9.9 4.2A10.3 10.3 0 0 1 12 4c6.5 0 10 8 10 8a17.9 17.9 0 0 1-2.2 3.2"/>
-                      <path d="M6.1 6.1C3.9 7.7 2 12 2 12s3.5 7 10 7a10.4 10.4 0 0 0 4.2-.9"/>
-                    </svg>
-                  </button>
+        <div class="login3d-shell">
+          <aside class="login3d-visual" aria-hidden="true">
+            <div class="login3d-visual-inner">
+              <div class="login3d-brand">
+                <div class="login3d-logo">L</div>
+                <div>
+                  <div class="login3d-brand-name">LUK54</div>
+                  <div class="login3d-brand-sub">Jalo Dream Farm</div>
                 </div>
-                <div class="form-error" data-error-for="password" hidden></div>
+              </div>
+              <h2 class="login3d-headline">Your flock.<br/>Your capital.<br/><span>One clear view.</span></h2>
+              <p class="login3d-desc">Track 2,500 layers, feed, eggs and profit — without calling the farm. Built for investors, trusted by operators.</p>
+
+              <div class="login3d-preview" id="login-preview">
+                <div class="login3d-preview-card">
+                  <div class="login3d-preview-row"><span>Investment</span><strong>UGX 13,000,000</strong></div>
+                  <div class="login3d-preview-row"><span>Eggs today</span><strong>2,100 · 84%</strong></div>
+                  <div class="login3d-preview-row"><span>Cash position</span><strong style="color:var(--color-accent)">UGX 8.4M</strong></div>
+                  <div class="login3d-preview-bar"><span style="width:72%"></span></div>
+                  <div class="login3d-preview-foot">Live from your farm — updates daily at 08:00 EAT</div>
+                </div>
+                <div class="login3d-preview-card login3d-preview-card--secondary">
+                  <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted); margin-bottom:6px">Health score</div>
+                  <div style="font-size:28px; font-weight:800; color:#1a5c3e">84<span style="font-size:16px; font-weight:600">/100</span></div>
+                  <div style="font-size:12px; color:var(--color-text-secondary)">Production 88% · Mortality 0.8%</div>
+                </div>
               </div>
 
-              <div class="form-error form-error-global" id="login-error" hidden role="alert"></div>
+              <div class="login3d-footnote">Secure · Role-based · Works on phone & desktop</div>
+            </div>
+          </aside>
 
-              <button type="submit" class="btn btn-primary login-submit" id="login-submit">
-                <span class="login-submit-label">Sign in</span>
-                <span class="login-submit-spinner" hidden aria-hidden="true"></span>
-              </button>
-            </form>
+          <section class="login3d-panel" id="login-panel">
+            <div class="login3d-card" id="login-card">
+              <header class="login3d-card-head">
+                <h1>Welcome back</h1>
+                <p>Sign in to continue to your farm</p>
+              </header>
 
-            <p class="login-secure">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              Authorized users only · Secure access
-            </p>
-          </div>
-        </section>
+              <form id="login-form" class="login-form" novalidate>
+                <div class="form-group">
+                  <label class="form-label" for="field-email">Email</label>
+                  <input class="form-input" type="email" name="email" id="field-email" placeholder="name@example.com" required autocomplete="username" inputmode="email" spellcheck="false" />
+                  <div class="form-error" data-error-for="email" hidden></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="field-password">Password</label>
+                  <div class="password-field">
+                    <input class="form-input" type="password" name="password" id="field-password" placeholder="Enter your password" required autocomplete="current-password" />
+                    <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password"><svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.3 10.3 0 0 1 12 4c6.5 0 10 8 10 8a17.9 17.9 0 0 1-2.2 3.2"/><path d="M6.1 6.1C3.9 7.7 2 12 2 12s3.5 7 10 7a10.4 10.4 0 0 0 4.2-.9"/></svg></button>
+                  </div>
+                  <div class="form-error" data-error-for="password" hidden></div>
+                </div>
+
+                <label style="display:flex;align-items:center;gap:8px; font-size:13px; color:var(--color-text-secondary); margin:2px 0 14px; cursor:pointer">
+                  <input type="checkbox" id="remember-email" style="accent-color:var(--color-accent)" /> Remember email
+                  <span style="margin-left:auto; font-size:12px; color:var(--color-text-muted)">Demo: admin@rmusana.com / admin2026</span>
+                </label>
+
+                <div class="form-error form-error-global" id="login-error" hidden role="alert"></div>
+                <button type="submit" class="btn btn-primary login-submit" id="login-submit" style="width:100%; height:44px; font-size:15px; box-shadow:0 8px 20px rgba(26,92,62,0.18)">
+                  <span class="login-submit-label">Sign in</span>
+                  <span class="login-submit-spinner" hidden></span>
+                </button>
+
+                <div style="display:flex; gap:8px; margin-top:12px">
+                  <button type="button" class="btn btn-secondary" id="demo-investor" style="flex:1; font-size:12px">Investor demo</button>
+                  <button type="button" class="btn btn-secondary" id="demo-ops" style="flex:1; font-size:12px">Operator demo</button>
+                </div>
+              </form>
+
+              <div class="login3d-trust">
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encrypted</span>
+                <span>•</span><span>Role-based access</span><span>•</span><span>08:00 EAT updates</span>
+              </div>
+            </div>
+
+            <div style="text-align:center; margin-top:14px; font-size:12px; color:var(--color-text-muted)">Need access? Contact your administrator</div>
+          </section>
+        </div>
       </div>
+
+      <style>
+        .login3d{ position:relative; min-height:100dvh; background: var(--color-bg); overflow:hidden; display:flex; align-items:center; justify-content:center; padding:24px; }
+        .login3d-bg{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+        .login3d-grid{ position:absolute; inset:0; background-image: linear-gradient(rgba(26,92,62,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(26,92,62,0.04) 1px, transparent 1px); background-size:32px 32px; mask-image: radial-gradient(800px 600px at 50% 20%, black, transparent 70%); }
+        .login3d-orb{ position:absolute; border-radius:50%; filter: blur(18px); opacity:0.45; }
+        .login3d-orb--1{ width:560px; height:560px; left:-120px; top:-120px; background: radial-gradient(circle at 30% 30%, #c8e6c9 0%, #a5d6a7 35%, transparent 70%); }
+        .login3d-orb--2{ width:720px; height:720px; right:-160px; bottom:-180px; background: radial-gradient(circle at 50% 50%, #f2ede6 0%, #e8e0d6 45%, transparent 70%); }
+        .login3d-orb--3{ width:420px; height:420px; left:48%; top:22%; background: radial-gradient(circle at 50% 50%, rgba(26,92,62,0.08), transparent 65%); }
+        .login3d-shell{ position:relative; width:min(1120px, 100%); display:grid; grid-template-columns: 1.05fr 0.95fr; gap:0; background: var(--color-bg-elevated); border:1px solid var(--color-border); border-radius:20px; overflow:hidden; box-shadow: var(--shadow-lg); transform: translateZ(0); }
+        .login3d-visual{ position:relative; background: linear-gradient(165deg, #0f2e22 0%, #1a5c3e 55%, #2f7d5e 100%); color:#fff; padding:32px; display:flex; flex-direction:column; overflow:hidden; }
+        .login3d-visual::after{ content:""; position:absolute; right:-40px; bottom:-40px; width:320px; height:320px; background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 60%); pointer-events:none; }
+        .login3d-visual-inner{ position:relative; z-index:1; display:flex; flex-direction:column; height:100%; gap:18px; }
+        .login3d-brand{ display:flex; align-items:center; gap:12px; }
+        .login3d-logo{ width:40px; height:40px; border-radius:12px; background: rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.2); display:grid; place-items:center; font-weight:800; backdrop-filter: blur(8px); }
+        .login3d-brand-name{ font-weight:800; letter-spacing:-0.03em; }
+        .login3d-brand-sub{ font-size:12px; opacity:0.8; }
+        .login3d-headline{ margin:8px 0 0; font-size:34px; line-height:1.05; letter-spacing:-0.03em; font-weight:800; }
+        .login3d-headline span{ color:#c8f0d8; }
+        .login3d-desc{ font-size:13px; line-height:1.6; opacity:0.82; max-width:32ch; }
+        .login3d-preview{ display:grid; gap:12px; margin-top:auto; }
+        .login3d-preview-card{ background: rgba(255,255,255,0.96); color:#141916; border-radius:14px; padding:14px; border:1px solid rgba(255,255,255,0.6); box-shadow: 0 12px 28px rgba(0,0,0,0.18); transform: translateZ(0); }
+        .login3d-preview-card--secondary{ background: rgba(255,255,255,0.9); }
+        .login3d-preview-row{ display:flex; justify-content:space-between; font-size:12px; padding:6px 0; border-bottom:1px solid #f0ebe4; }
+        .login3d-preview-row:last-of-type{ border:none; }
+        .login3d-preview-bar{ height:6px; background:#eee9e1; border-radius:999px; overflow:hidden; margin-top:8px; }
+        .login3d-preview-bar span{ display:block; height:100%; background: var(--color-accent); border-radius:999px; }
+        .login3d-preview-foot{ font-size:11px; color:var(--color-text-muted); margin-top:8px; }
+        .login3d-footnote{ font-size:11px; opacity:0.7; margin-top:8px; }
+        .login3d-panel{ padding:28px; display:flex; flex-direction:column; justify-content:center; background: var(--color-bg-elevated); }
+        .login3d-card{ background: var(--color-bg-elevated); border-radius:16px; transform-style: preserve-3d; transition: transform 180ms ease, box-shadow 180ms ease; }
+        .login3d-card-head h1{ margin:0 0 6px; font-size:22px; letter-spacing:-0.02em; }
+        .login3d-card-head p{ margin:0 0 18px; color:var(--color-text-secondary); font-size:13px; }
+        .login3d-trust{ display:flex; gap:8px; align-items:center; justify-content:center; margin-top:14px; font-size:11px; color:var(--color-text-muted); }
+        @media (max-width: 900px){ .login3d-shell{ grid-template-columns:1fr; } .login3d-visual{ min-height:auto; padding:24px; } .login3d-orb--2{ display:none; } }
+        @media (prefers-reduced-motion: reduce){ .login3d-card{ transition:none; } }
+      </style>
     `;
 
     const form = root.querySelector('#login-form');
@@ -103,29 +144,42 @@ export default {
     const globalError = root.querySelector('#login-error');
     const pwInput = root.querySelector('#field-password');
     const pwToggle = root.querySelector('#password-toggle');
+    const card = root.querySelector('#login-card');
+    const emailInput = root.querySelector('#field-email');
+    const remember = root.querySelector('#remember-email');
 
-    function clearErrors() {
-      form.querySelectorAll('[data-error-for]').forEach((el) => {
-        el.hidden = true;
-        el.textContent = '';
+    // 3D tilt
+    if (card && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const panel = root.querySelector('#login-panel');
+      panel.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        card.style.transform = `perspective(900px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) translateZ(0)`;
+        card.style.boxShadow = `0 16px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06)`;
       });
-      if (globalError) {
-        globalError.hidden = true;
-        globalError.textContent = '';
-      }
-      form.querySelectorAll('.form-input').forEach((el) => el.classList.remove('is-invalid'));
+      panel.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(900px) rotateY(0) rotateX(0)';
+      });
     }
 
+    // remember email
+    try {
+      const saved = localStorage.getItem('luk54_remember_email');
+      if (saved && emailInput) { emailInput.value = saved; if (remember) remember.checked = true; }
+    } catch {}
+
+    function clearErrors() {
+      form.querySelectorAll('[data-error-for]').forEach((el) => { el.hidden = true; el.textContent = ''; });
+      if (globalError) { globalError.hidden = true; globalError.textContent = ''; }
+      form.querySelectorAll('.form-input').forEach((el) => el.classList.remove('is-invalid'));
+    }
     function showFieldError(name, message) {
       const err = form.querySelector('[data-error-for="' + name + '"]');
       const input = form.querySelector('[name="' + name + '"]');
-      if (err) {
-        err.textContent = message;
-        err.hidden = false;
-      }
+      if (err) { err.textContent = message; err.hidden = false; }
       if (input) input.classList.add('is-invalid');
     }
-
     function setLoading(loading) {
       submitBtn.disabled = loading;
       submitBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
@@ -138,7 +192,6 @@ export default {
         const showing = pwInput.type === 'text';
         pwInput.type = showing ? 'password' : 'text';
         pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-        pwToggle.setAttribute('title', showing ? 'Show password' : 'Hide password');
         const open = pwToggle.querySelector('.eye-open');
         const closed = pwToggle.querySelector('.eye-closed');
         if (open) open.hidden = !showing;
@@ -146,31 +199,31 @@ export default {
       });
     }
 
+    // demo fill
+    root.querySelector('#demo-investor')?.addEventListener('click', () => {
+      if (emailInput) emailInput.value = 'robert@luk54.com';
+      if (pwInput) pwInput.value = 'investor2026';
+    });
+    root.querySelector('#demo-ops')?.addEventListener('click', () => {
+      if (emailInput) emailInput.value = 'joseph@jalodreamfarm.com';
+      if (pwInput) pwInput.value = 'ops2026';
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
-
       const email = form.email.value.trim();
       const password = form.password.value;
       let valid = true;
-
-      if (!email) {
-        showFieldError('email', 'Enter your email address');
-        valid = false;
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showFieldError('email', 'Enter a valid email address');
-        valid = false;
-      }
-      if (!password) {
-        showFieldError('password', 'Enter your password');
-        valid = false;
-      }
-      if (!valid) {
-        const first = form.querySelector('.is-invalid');
-        if (first) first.focus();
-        return;
-      }
-
+      if (!email) { showFieldError('email', 'Enter your email'); valid = false; }
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError('email', 'Enter a valid email'); valid = false; }
+      if (!password) { showFieldError('password', 'Enter your password'); valid = false; }
+      if (!valid) { const first = form.querySelector('.is-invalid'); if (first) first.focus(); return; }
+      // remember
+      try {
+        if (remember?.checked) localStorage.setItem('luk54_remember_email', email);
+        else localStorage.removeItem('luk54_remember_email');
+      } catch {}
       setLoading(true);
       try {
         await loginWithCredentials(email, password);
@@ -178,10 +231,7 @@ export default {
         navigate('dashboard');
       } catch (err) {
         const msg = err.message || 'Sign in failed. Check your email and password.';
-        if (globalError) {
-          globalError.textContent = msg;
-          globalError.hidden = false;
-        }
+        if (globalError) { globalError.textContent = msg; globalError.hidden = false; }
         toastError(msg);
         setLoading(false);
         form.password.focus();
