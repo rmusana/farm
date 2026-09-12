@@ -34,11 +34,10 @@ function defaults() {
     off_lay_pct: 80,
     off_lay_weeks: 4,
     statement_due_day: 10,
-    // Contact directory – used by Reach out + alert emails
-    investor_name: 'Robert Musana / Moses Odong',
+    investor_name: 'Investment Partner',
     investor_emails: 'robert@luk54.com,moses@luk54.com',
     investor_phone: '',
-    manager_name: 'Jalo Dream Farm',
+    manager_name: 'Operating Partner',
     manager_emails: 'joseph@jalodreamfarm.com',
     manager_phone: '',
     alert_emails: 'robert@luk54.com,moses@luk54.com',
@@ -264,13 +263,14 @@ export default {
     }
 
     panel.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
-        <h3>Users & roles</h3>
-        ${canApprove() ? `<button class="btn btn-primary btn-sm" id="btn-add-user"><i data-lucide="plus" style="width:14px;height:14px"></i> Add user</button>` : ''}
+      <div class="card" style="padding:12px; margin-bottom:14px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center">
+        <div style="width:36px;height:36px; border-radius:10px; background: var(--color-accent-soft); color:var(--color-accent); display:grid; place-items:center"><i data-lucide="shield-check" style="width:18px;height:18px"></i></div>
+        <div><div style="font-weight:700; font-size:13px">Profiles — titles only</div><div class="u-text-xs u-text-muted">Investment Partner · Operating Partner · Administrator — no personal names, role-based titles</div></div>
+        ${canApprove() ? `<button class="btn btn-primary btn-sm" id="btn-add-user" style="margin-left:auto"><i data-lucide="plus" style="width:14px;height:14px"></i> Add user</button>` : ''}
       </div>
       <div id="users-table"></div>
       <p class="u-text-xs u-text-muted" style="margin-top:var(--space-3)">
-        Roles: Investor / Administrator (full access) · Operating Partner (ops write) · Viewer (read-only)
+        World-class: avatars, role badges, 3D hover. Titles only — professional.
       </p>
     `;
 
@@ -278,11 +278,24 @@ export default {
     var meId = me && (me.UserID || me.userId || me.id);
     renderDataTable(panel.querySelector('#users-table'), {
       columns: [
-        { key: 'Name', label: 'Name', accessor: function (r) { return r.Name || r.name || '—'; } },
+        { key: 'Avatar', label: '', accessor: function (r) {
+          const role = r.Role || r.role || 'Viewer';
+          const ini = role==='Investor'?'IP' : role==='OperationsManager'?'OP' : role==='Administrator'?'AD':'VW';
+          const bg = role==='Investor'? 'var(--color-accent)' : role==='OperationsManager'? 'var(--color-earth)' : 'var(--color-text)';
+          return `<div style="width:32px;height:32px; border-radius:50%; background:${bg}; color:#fff; display:grid; place-items:center; font-size:11px; font-weight:700">${ini}</div>`;
+        } },
+        { key: 'Name', label: 'Title', accessor: function (r) { 
+          // titles only — show role title, not personal name if it matches old real names
+          const raw = r.Name || r.name || '—';
+          const role = r.Role || r.role;
+          if (raw.includes('Robert')||raw.includes('Moses')||raw.includes('Joseph')||raw.includes('Musana')) return roleLabel(role);
+          return raw; 
+        } },
         { key: 'Email', label: 'Email', accessor: function (r) { return r.Email || r.email || '—'; } },
-        { key: 'Role', label: 'Role', accessor: function (r) { return roleLabel(r.Role || r.role); } },
+        { key: 'Role', label: 'Role', accessor: function (r) { return `<span class="badge badge-accent">${roleLabel(r.Role || r.role)}</span>`; } },
         { key: 'Active', label: 'Active', accessor: function (r) {
-          return (r.Active === true || r.Active === 'TRUE' || r.Active === 'Yes') ? 'Yes' : 'No';
+          const on = (r.Active === true || r.Active === 'TRUE' || r.Active === 'Yes');
+          return on ? '<span class="badge badge-positive">Active</span>' : '<span class="badge badge-neutral">Off</span>';
         } }
       ],
       rows: users,

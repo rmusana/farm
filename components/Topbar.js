@@ -6,10 +6,10 @@ import { toastSuccess, toastError } from './Toast.js';
 import api from '../js/api.js';
 
 const CONTACT_DEFAULTS = {
-  investor_name: 'Robert Musana / Moses Odong',
+  investor_name: 'Investment Partner',
   investor_emails: 'robert@luk54.com,moses@luk54.com',
   investor_phone: '',
-  manager_name: 'Jalo Dream Farm',
+  manager_name: 'Operating Partner',
   manager_emails: 'joseph@jalodreamfarm.com',
   manager_phone: ''
 };
