@@ -17,18 +17,18 @@ var Reports = {
     return {
       success: true,
       data: [
-        { id: 'monthly_statement', name: 'Monthly Investment Statement', clause: 'Clause 10' },
-        { id: 'production', name: 'Production Report', clause: null },
-        { id: 'financial', name: 'Financial Report', clause: 'Clause 13' },
-        { id: 'budget', name: 'Budget vs Actual', clause: null },
-        { id: 'expense', name: 'Expense Report', clause: null },
-        { id: 'revenue', name: 'Revenue Report', clause: null },
-        { id: 'profit', name: 'Profit Distribution Report', clause: 'Clause 13(e)' },
-        { id: 'inventory', name: 'Inventory Report', clause: null },
-        { id: 'mortality', name: 'Mortality Report', clause: null },
-        { id: 'feed', name: 'Feed Report', clause: null },
-        { id: 'executive', name: 'Executive Summary', clause: null },
-        { id: 'audit', name: 'Audit Report', clause: 'Clause 15' }
+        { id: 'monthly_statement', name: 'Monthly Investment Statement' },
+        { id: 'production', name: 'Production Report' },
+        { id: 'financial', name: 'Financial Report' },
+        { id: 'budget', name: 'Budget vs Actual' },
+        { id: 'expense', name: 'Expense Report' },
+        { id: 'revenue', name: 'Revenue Report' },
+        { id: 'profit', name: 'Profit Distribution Report' },
+        { id: 'inventory', name: 'Inventory Report' },
+        { id: 'mortality', name: 'Mortality Report' },
+        { id: 'feed', name: 'Feed Report' },
+        { id: 'executive', name: 'Executive Summary' },
+        { id: 'audit', name: 'Audit Report' }
       ]
     };
   },
@@ -146,7 +146,7 @@ var Reports = {
       sales: { count: sales.length, revenue: revenue },
       capitalLines: periodCapital,
       expenseLines: expenses,
-      note: 'Prepared under Clause 10 of the Dedicated Flock Investment and Management Agreement. Due by the 10th of the following month.'
+      note: 'Prepared monthly. Due by the 10th of the following month.'
     };
   },
 
@@ -267,7 +267,7 @@ var Reports = {
       period: period,
       financial: fin,
       production: { eggs: prod.totalEggs, mortality: prod.totalMortality, days: prod.days },
-      healthNote: fin.commercialReached ? 'Commercial production active. Clause 13 allocation in force.' : 'Pre-commercial phase.'
+      healthNote: fin.commercialReached ? 'Commercial production active. Revenue allocation in force.' : 'Pre-commercial phase.'
     };
   },
 
@@ -279,7 +279,7 @@ var Reports = {
     return {
       title: 'Audit Report',
       period: period,
-      note: 'Prepared under Clause 15 (Audit Rights).',
+      note: 'Prepared for audit review.',
       capital: capital,
       expenses: expenses,
       sales: sales,
@@ -329,7 +329,7 @@ var Reports = {
       body += '<div class="kpi"><div class="l">Expenses</div><div class="v">UGX ' + this.fmt(s.totalExpenses) + '</div></div>';
       body += '<div class="kpi"><div class="l">Revenue</div><div class="v">UGX ' + this.fmt(s.grossSalesRevenue) + '</div></div>';
       body += '<div class="kpi"><div class="l">Net profit</div><div class="v">UGX ' + this.fmt(s.netProfitToInvestor) + '</div></div>';
-      body += '<h2>Clause 13 allocation (' + period + ')</h2>';
+      body += '<h2>Revenue allocation (' + period + ')</h2>';
       body += '<p>Active: ' + (a.formulaActive ? 'Yes' : 'No') + '</p>';
       body += '<div class="kpi"><div class="l">Feed 50%</div><div class="v">UGX ' + this.fmt(a.feedAllocation) + '</div></div>';
       body += '<div class="kpi"><div class="l">Operator 25% GP</div><div class="v">UGX ' + this.fmt(a.operatingPartnerShare) + '</div></div>';

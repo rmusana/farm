@@ -49,7 +49,6 @@ var Dashboard = {
     var alerts = this.openAlerts(projectId);
     var commercial = this.commercialStatus(projectId, production);
 
-    // Clause 13 allocation (only after commercial production)
     var grossSales = revenue;
     var feedAllocation = 0;
     var grossProfit = 0;
@@ -162,7 +161,7 @@ var Dashboard = {
     }
 
     if (s.commercialReached) {
-      insights.push({ severity: 'positive', text: 'Commercial production has been reached. Clause 13 revenue allocation is active.' });
+      insights.push({ severity: 'positive', text: 'Commercial production has been reached. Revenue allocation is active.' });
     } else if (s.daysToCommercial != null && s.daysToCommercial > 0) {
       insights.push({ severity: 'info', text: 'Commercial production is expected in approximately ' + s.daysToCommercial + ' days (Week ' + s.expectedCommercialWeek + ').' });
     } else if (s.currentWeek != null) {

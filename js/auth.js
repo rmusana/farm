@@ -7,14 +7,11 @@ import api from './api.js';
 const PUBLIC_ROUTES = new Set(['login']);
 
 const ROLE_PERMISSIONS = {
-  /* Full system control */
   Administrator: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents', 'settings'],
-  /* Capital, returns, statements, high-level flock health — not daily data entry */
-  Investor: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
-  /* Day-to-day flock, records, expenses, sales, supporting documents */
+  Investor: ['dashboard', 'finance', 'reports', 'documents'],
   OperationsManager: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
   OperatingPartner: ['dashboard', 'operations', 'finance', 'reports', 'alerts', 'documents'],
-  Viewer: ['dashboard', 'reports', 'alerts']
+  Viewer: ['dashboard', 'reports']
 };
 
 const ROLE_LABELS = {
@@ -25,7 +22,7 @@ const ROLE_LABELS = {
   Viewer: 'Viewer'
 };
 
-/** Finance tabs visible per role */
+/** Finance tabs visible per role — Investor is finance-first */
 const FINANCE_SECTIONS_BY_ROLE = {
   Administrator: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
   Investor: ['summary', 'capital', 'disbursed', 'revenue', 'expenses', 'allocation', 'profit', 'cashflow', 'forecast'],
@@ -258,8 +255,7 @@ export function requireAuth(route) {
 }
 
 /**
- * Bootstrap accounts aligned with Agreement parties.
- * Replace with Users sheet data once Apps Script is live.
+ * Bootstrap accounts — replaced by Users sheet when backend is active.
  */
 function getBootstrapUsers() {
   return [

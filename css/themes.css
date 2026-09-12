@@ -1,23 +1,25 @@
-/* LUK54 Design System — enterprise farm investment platform */
+/* LUK54 — World-class farm investment platform · warm earth + deep farm green */
 :root {
-  /* Surfaces */
-  --color-bg: #f5f4f1;
+  /* Surfaces — warm cream / linen */
+  --color-bg: #faf8f5;
   --color-bg-elevated: #ffffff;
-  --color-bg-subtle: #ebeae6;
+  --color-bg-subtle: #f2ede6;
   --color-surface: #ffffff;
-  --color-border: #e2e0db;
-  --color-border-strong: #ccc9c2;
+  --color-border: #e8e0d6;
+  --color-border-strong: #d7cbbc;
 
   /* Text */
   --color-text: #141916;
   --color-text-secondary: #4d5650;
   --color-text-muted: #8b928c;
 
-  /* Brand */
-  --color-accent: #1b6b4a;
-  --color-accent-hover: #155a3e;
-  --color-accent-soft: rgba(27, 107, 74, 0.1);
-  --color-accent-muted: #2d8a62;
+  /* Brand — deep farm green + warm earth secondary */
+  --color-accent: #1a5c3e;
+  --color-accent-hover: #144a32;
+  --color-accent-soft: rgba(26, 92, 62, 0.08);
+  --color-accent-muted: #2f7d5e;
+  --color-earth: #8c6a4a;
+  --color-earth-soft: rgba(140, 106, 74, 0.1);
 
   /* Semantic */
   --color-positive: #1a7a45;
@@ -68,10 +70,10 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  /* Shadow — restrained */
-  --shadow-sm: 0 1px 2px rgba(20, 25, 22, 0.04);
-  --shadow-md: 0 4px 12px rgba(20, 25, 22, 0.06);
-  --shadow-lg: 0 12px 32px rgba(20, 25, 22, 0.08);
+  /* Shadow — premium, soft */
+  --shadow-sm: 0 1px 3px rgba(28, 35, 24, 0.06), 0 1px 2px rgba(28, 35, 24, 0.04);
+  --shadow-md: 0 6px 20px rgba(28, 35, 24, 0.07), 0 2px 8px rgba(28, 35, 24, 0.05);
+  --shadow-lg: 0 16px 40px rgba(28, 35, 24, 0.1), 0 4px 12px rgba(28, 35, 24, 0.06);
   --shadow-glass: var(--shadow-sm);
 
   /* Layout */
@@ -95,19 +97,19 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #0e1210;
-  --color-bg-elevated: #161c19;
-  --color-bg-subtle: #1c2420;
-  --color-surface: #161c19;
-  --color-border: #2a332e;
-  --color-border-strong: #3d4a43;
-  --color-text: #eef2ef;
-  --color-text-secondary: #a8b3ac;
-  --color-text-muted: #6f7c74;
-  --color-accent: #3dba7e;
-  --color-accent-hover: #4fd492;
-  --color-accent-soft: rgba(61, 186, 126, 0.14);
-  --color-accent-muted: #2d9a66;
+  --color-bg: #0f1412;
+  --color-bg-elevated: #18201d;
+  --color-bg-subtle: #1f2a26;
+  --color-surface: #18201d;
+  --color-border: #26332e;
+  --color-border-strong: #34423d;
+  --color-text: #eef3f0;
+  --color-text-secondary: #a9b6b0;
+  --color-text-muted: #73807a;
+  --color-accent: #45c58a;
+  --color-accent-hover: #5fd49a;
+  --color-accent-soft: rgba(69, 197, 138, 0.14);
+  --color-accent-muted: #34a674;
   --color-positive: #3dba7e;
   --color-positive-soft: rgba(61, 186, 126, 0.12);
   --color-caution: #e0a23a;
