@@ -4,7 +4,12 @@
 let activeModal = null;
 
 export function openModal({ title, content, footer, size = 'md', onClose }) {
-  closeModal();
+  // immediate cleanup if a modal is still animating out — prevents race where old timeout wipes new modal
+  if (activeModal) {
+    try { activeModal.backdrop.remove(); } catch {}
+    if (activeModal.esc) document.removeEventListener('keydown', activeModal.esc);
+    activeModal = null;
+  }
   const root = document.getElementById('modal-root');
   if (!root) return;
 
@@ -66,13 +71,17 @@ export function openModal({ title, content, footer, size = 'md', onClose }) {
 
 export function closeModal() {
   if (!activeModal) return;
-  const { backdrop, onClose, esc } = activeModal;
+  const current = activeModal;
+  const { backdrop, onClose, esc } = current;
   backdrop.classList.remove('open');
+  // capture current reference; only clear if still current (race-safe)
   setTimeout(() => {
-    backdrop.remove();
+    try { backdrop.remove(); } catch {}
     if (esc) document.removeEventListener('keydown', esc);
-    if (typeof onClose === 'function') onClose();
-    activeModal = null;
+    if (typeof onClose === 'function') {
+      try { onClose(); } catch {}
+    }
+    if (activeModal === current) activeModal = null;
   }, 220);
 }
 
