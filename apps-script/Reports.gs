@@ -297,8 +297,9 @@ var Reports = {
       '.kpi{display:inline-block;min-width:140px;margin:8px 16px 8px 0}.kpi .v{font-size:18px;font-weight:700}.kpi .l{font-size:11px;color:#64748b}' +
       '.foot{margin-top:32px;font-size:11px;color:#94a3b8}';
 
-    var body = '<h1>' + (data.title || type) + '</h1>';
-    body += '<div class="meta">RMUSANA · LUK54 Flock · Period: ' + period + ' · Generated: ' + new Date().toISOString().slice(0, 10) + '</div>';
+    var body = '<div style="display:flex; align-items:center; gap:12px; border-bottom:2px solid #1a5c3e; padding-bottom:12px; margin-bottom:16px"><div style="width:42px;height:42px; background:#1a5c3e; color:#fff; border-radius:10px; display:grid; place-items:center; font-weight:800; font-size:16px">L</div><div><div style="font-weight:800; letter-spacing:-0.02em">LUK54 · Jalo Dream Farm</div><div style="font-size:11px; color:#64748b; letter-spacing:0.06em; text-transform:uppercase">Investment & Farm Operations · 2,500 Layers</div></div><div style="margin-left:auto; text-align:right; font-size:11px; color:#64748b">Period: ' + period + '<br/>Generated: ' + new Date().toISOString().slice(0, 10) + '</div></div>';
+    body += '<h1 style="margin:12px 0 4px">' + (data.title || type) + '</h1>';
+    body += '<div class="meta" style="display:none">RMUSANA · LUK54 Flock · Period: ' + period + ' · Generated: ' + new Date().toISOString().slice(0, 10) + '</div>';
 
     if (type === 'monthly_statement') {
       body += '<div class="kpi"><div class="l">Contributions (period)</div><div class="v">UGX ' + this.fmt(data.contributionsReceived) + '</div></div>';
