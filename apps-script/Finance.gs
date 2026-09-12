@@ -77,24 +77,28 @@ var Finance = {
   },
 
   createCapital: function (body) {
-    Utils.requireFields(body, ['date', 'amount']);
-    var pid = this.projectId(body);
-    var sheet = getSheet('CapitalContributions');
-    this.ensureHeaders(sheet, ['ContributionID', 'ProjectID', 'Date', 'Amount', 'Purpose', 'Reference', 'DocumentID', 'CreatedBy', 'CreatedAt']);
-    var id = Utils.generateId('cc');
-    var row = {
-      ContributionID: id,
-      ProjectID: pid,
-      Date: body.date,
-      Amount: Utils.toNumber(body.amount),
-      Purpose: body.purpose || 'General',
-      Reference: body.reference || '',
-      DocumentID: body.documentId || '',
-      CreatedBy: (body._user && body._user.Email) || '',
-      CreatedAt: Utils.nowISO()
-    };
-    Utils.appendObject(sheet, row);
-    return { success: true, data: row };
+    return Audit.withLock(function(){
+      Utils.requireFields(body, ['date', 'amount']);
+      var pid = Finance.projectId(body);
+      var sheet = getSheet('CapitalContributions');
+      Finance.ensureHeaders(sheet, ['ContributionID', 'ProjectID', 'Date', 'Amount', 'Purpose', 'Reference', 'DocumentID', 'CreatedBy', 'CreatedAt']);
+      var id = Utils.generateId('cc');
+      var row = {
+        ContributionID: id,
+        ProjectID: pid,
+        Date: body.date,
+        Amount: Utils.toNumber(body.amount),
+        Purpose: body.purpose || 'General',
+        Reference: body.reference || '',
+        DocumentID: body.documentId || '',
+        CreatedBy: (body._user && body._user.Email) || '',
+        CreatedAt: Utils.nowISO()
+      };
+      Utils.appendObject(sheet, row);
+      Audit.log('CAPITAL_CREATE', 'CapitalContributions', id, 'Amount '+row.Amount+' '+row.Purpose, body._user);
+      SpreadsheetApp.flush();
+      return { success: true, data: row };
+    });
   },
 
   /* ── Expenses ─────────────────────────────────────────── */
@@ -107,28 +111,32 @@ var Finance = {
   },
 
   createExpense: function (body) {
-    Utils.requireFields(body, ['date', 'category', 'amount']);
-    var pid = this.projectId(body);
-    var sheet = getSheet('Expenses');
-    this.ensureHeaders(sheet, ['ExpenseID', 'ProjectID', 'Date', 'Category', 'SubCategory', 'Amount', 'Supplier', 'BudgetLineID', 'DocumentID', 'Notes', 'CreatedBy', 'CreatedAt']);
-    var id = Utils.generateId('ex');
-    var row = {
-      ExpenseID: id,
-      ProjectID: pid,
-      Date: body.date,
-      Category: body.category,
-      SubCategory: body.subCategory || '',
-      Amount: Utils.toNumber(body.amount),
-      Supplier: body.supplier || '',
-      BudgetLineID: body.budgetLineId || '',
-      DocumentID: body.documentId || '',
-      Notes: body.notes || '',
-      CreatedBy: (body._user && body._user.Email) || '',
-      CreatedAt: Utils.nowISO()
-    };
-    Utils.appendObject(sheet, row);
-    this.updateBudgetActual(pid, body.category, body.subCategory, Utils.toNumber(body.amount));
-    return { success: true, data: row };
+    return Audit.withLock(function(){
+      Utils.requireFields(body, ['date', 'category', 'amount']);
+      var pid = Finance.projectId(body);
+      var sheet = getSheet('Expenses');
+      Finance.ensureHeaders(sheet, ['ExpenseID', 'ProjectID', 'Date', 'Category', 'SubCategory', 'Amount', 'Supplier', 'BudgetLineID', 'DocumentID', 'Notes', 'CreatedBy', 'CreatedAt']);
+      var id = Utils.generateId('ex');
+      var row = {
+        ExpenseID: id,
+        ProjectID: pid,
+        Date: body.date,
+        Category: body.category,
+        SubCategory: body.subCategory || '',
+        Amount: Utils.toNumber(body.amount),
+        Supplier: body.supplier || '',
+        BudgetLineID: body.budgetLineId || '',
+        DocumentID: body.documentId || '',
+        Notes: body.notes || '',
+        CreatedBy: (body._user && body._user.Email) || '',
+        CreatedAt: Utils.nowISO()
+      };
+      Utils.appendObject(sheet, row);
+      Finance.updateBudgetActual(pid, body.category, body.subCategory, Utils.toNumber(body.amount));
+      Audit.log('EXPENSE_CREATE', 'Expenses', id, body.category+' '+row.Amount, body._user);
+      SpreadsheetApp.flush();
+      return { success: true, data: row };
+    });
   },
 
   /* ── Budget ───────────────────────────────────────────── */
