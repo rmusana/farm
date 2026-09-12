@@ -117,7 +117,10 @@ export default {
         .login3d-card-head p{ margin:0 0 14px; color:var(--color-text-secondary); font-size:12px; }
         .login3d-trust{ display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; font-size:11px; color:var(--color-text-muted); }
         @media (max-width: 900px){ .login3d{ padding:16px; } .login3d-shell{ grid-template-columns:1fr; max-height:none; } .login3d-visual{ min-height:auto; padding:22px; } .login3d-orb--2{ display:none; } }
+        @media (max-width: 480px){ .login3d{ padding:12px; } .login3d-shell{ border-radius:16px; } .login3d-visual{ padding:18px; } .login3d-headline{ font-size:22px; } .login3d-panel{ padding:18px; } .login3d-card-head h1{ font-size:18px; } .login3d-orb--1{ display:none; } }
+        @media (min-width: 1400px){ .login3d-shell{ width:min(1020px, 100%); } .login3d-visual{ padding:32px; } .login3d-headline{ font-size:30px; } }
         @media (prefers-reduced-motion: reduce){ .login3d-card{ transition:none; } }
+        @media (hover: none){ .login3d-card{ transform:none !important; } }
       </style>
     `;
 
