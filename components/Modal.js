@@ -32,6 +32,7 @@ export function openModal({ title, content, footer, size = 'md', onClose }) {
 
   requestAnimationFrame(() => backdrop.classList.add('open'));
 
+  // direct buttons
   backdrop.querySelectorAll('[data-modal-close]').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
@@ -39,11 +40,16 @@ export function openModal({ title, content, footer, size = 'md', onClose }) {
       closeModal();
     });
   });
+  // delegated: handles lucide-replaced SVGs and footer buttons
   backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-    const closer = e.target.closest && e.target.closest('[data-modal-close]');
-    if (closer) {
+    if (e.target === backdrop) {
+      closeModal();
+      return;
+    }
+    var closer = e.target.closest && e.target.closest('[data-modal-close]');
+    if (closer && backdrop.contains(closer)) {
       e.preventDefault();
+      e.stopPropagation();
       closeModal();
     }
   });
