@@ -76,6 +76,17 @@ export default {
         </div>
       </div>
 
+      <div class="card" style="padding:14px; margin-bottom:14px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center">
+        <div style="width:40px;height:40px; border-radius:10px; background: var(--color-accent-soft); color:var(--color-accent); display:grid; place-items:center"><i data-lucide="folder-open" style="width:20px;height:20px"></i></div>
+        <div><div style="font-weight:700; font-size:13px">Evidence — every UGX has a receipt</div><div class="u-text-xs u-text-muted">Photos, invoices, statements. Linked to daily, expense or sale.</div></div>
+        <div style="margin-left:auto; font-size:11px; color:var(--color-text-muted)">Premium gallery • Hover to preview</div>
+      </div>
+
+      <style>
+        #docs-grid .card{ transition: transform 160ms var(--ease-out), box-shadow 160ms; }
+        #docs-grid .card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-accent); }
+      </style>
+
       <div style="display:flex;gap:var(--space-1);flex-wrap:wrap;margin-bottom:var(--space-4)" id="doc-filters">
         <button class="btn btn-sm btn-primary" data-cat="all">All</button>
         ${CATEGORIES.map((c) => `<button class="btn btn-sm btn-ghost" data-cat="${c}">${c}</button>`).join('')}

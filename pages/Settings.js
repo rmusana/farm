@@ -93,6 +93,12 @@ export default {
         </div>
       </div>
 
+      <div class="card" style="padding:14px; margin-bottom:14px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center">
+        <div style="width:40px;height:40px; border-radius:10px; background: var(--color-accent-soft); color:var(--color-accent); display:grid; place-items:center"><i data-lucide="settings" style="width:20px;height:20px"></i></div>
+        <div><div style="font-weight:700; font-size:13px">System control — one place</div><div class="u-text-xs u-text-muted">Project, contacts, users, notifications, security. Admin-only users.</div></div>
+        <div style="margin-left:auto; font-size:11px; color:var(--color-text-muted)">World-class farm • Encrypted</div>
+      </div>
+
       <div class="grid-2" style="align-items:start">
         <div class="card" style="padding:var(--space-2)">
           ${SECTIONS.map((s) => `

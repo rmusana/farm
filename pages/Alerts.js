@@ -134,6 +134,10 @@ export default {
           </button>
         </div>
       </div>
+      <div class="card" style="padding:14px; margin-bottom:14px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+        <div style="display:flex; align-items:center; gap:10px"><div style="width:36px;height:36px; border-radius:10px; background: var(--color-critical-soft); color:var(--color-critical); display:grid; place-items:center"><i data-lucide="alert-triangle" style="width:18px;height:18px"></i></div><div><div style="font-weight:700; font-size:13px">Inbox — role-filtered</div><div class="u-text-xs u-text-muted">Investor sees finance only · Ops sees operational · Admin all</div></div></div>
+        <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap"><span class="badge badge-critical">Critical first</span><span class="badge badge-neutral">Open → Acknowledged → Resolved</span></div>
+      </div>
       <div id="alerts-list"><div class="skeleton" style="height:200px"></div></div>
     `;
 
