@@ -8,8 +8,8 @@
  * Then paste the Web App URL into window.RMUSANA_API_URL (js/config.js)
  */
 
-var SPREADSHEET_ID = '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME';
-var DRIVE_ROOT_FOLDER_ID = '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6';
+var SPREADSHEET_ID = (function(){ try{ var v=PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'); return v || '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME'; }catch(e){ return '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME'; }})();
+var DRIVE_ROOT_FOLDER_ID = (function(){ try{ var v=PropertiesService.getScriptProperties().getProperty('DRIVE_ROOT_FOLDER_ID'); return v || '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6'; }catch(e){ return '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6'; }})();
 
 function doGet(e) {
   return jsonResponse({
@@ -117,3 +117,15 @@ function getSheet(name) {
 function setupAuth() {
   return Auth.seedUsers();
 }
+function setupFarmTriggers() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(function(t){
+      if(t.getHandlerFunction()==='autoBackup' || t.getHandlerFunction()==='runAlertEngine') ScriptApp.deleteTrigger(t);
+    });
+  } catch(e){}
+  ScriptApp.newTrigger('autoBackup').timeBased().everyDays(1).atHour(2).create();
+  ScriptApp.newTrigger('runAlertEngine').timeBased().everyHours(6).create();
+  return { success:true, message:'Triggers: daily 02:00 backup + 6h alerts' };
+}
+function autoBackup(){ try{ var r=Settings.backup({}); Audit.log('AUTO_BACKUP','Drive', r.data? r.data.fileId:'', 'daily', null); }catch(e){} }
+function runAlertEngine(){ try{ Alerts.runEngine({projectId:'LUK54'});}catch(e){} }

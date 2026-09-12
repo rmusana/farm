@@ -101,8 +101,9 @@ var Operations = {
   },
 
   createDaily: function (body) {
+    return Audit.withLock(function(){
     Utils.requireFields(body, ['date']);
-    var pid = this.projectId(body);
+    var pid = Operations.projectId(body);
     var sheet = getSheet('DailyProduction');
     this.ensureHeaders(sheet, [
       'RecordID', 'ProjectID', 'Date', 'OpeningBirds', 'Mortality', 'ClosingBirds',
@@ -154,15 +155,15 @@ var Operations = {
     };
 
     Utils.appendObject(sheet, row);
-    this.updateFeedInventoryFromIssue(pid, row);
-    this.touchFlockCount(pid, closing);
-
-    // Abnormal mortality alert threshold: >1% of opening in a day
+    Operations.updateFeedInventoryFromIssue(pid, row);
+    Operations.touchFlockCount(pid, closing);
+    Audit.log('DAILY_CREATE', 'DailyProduction', id, 'Eggs '+row.EggsCollected+' Mort '+mortality, body._user);
+    SpreadsheetApp.flush();
     if (opening > 0 && mortality / opening > 0.01) {
-      this.createAlert(pid, 'Critical', 'Abnormal mortality', mortality + ' birds lost on ' + body.date + ' (' + Math.round(mortality / opening * 1000) / 10 + '%)', 'Investigate causes and biosecurity', body.date);
+      Operations.createAlert(pid, 'Critical', 'Abnormal mortality', mortality + ' birds lost on ' + body.date + ' (' + Math.round(mortality / opening * 1000) / 10 + '%)', 'Investigate causes and biosecurity', body.date);
     }
-
     return { success: true, data: row };
+    });
   },
 
   /* ── Flock ────────────────────────────────────────────── */
@@ -253,29 +254,33 @@ var Operations = {
   },
 
   createFeedPurchase: function (body) {
-    Utils.requireFields(body, ['date', 'product', 'qtyKg', 'unitCost']);
-    var pid = this.projectId(body);
-    var sheet = getSheet('FeedPurchases');
-    this.ensureHeaders(sheet, ['PurchaseID', 'ProjectID', 'Date', 'Product', 'QtyKg', 'UnitCost', 'TotalCost', 'Supplier', 'DocumentID', 'CreatedBy', 'CreatedAt']);
-    var qty = Utils.toNumber(body.qtyKg);
-    var unit = Utils.toNumber(body.unitCost);
-    var id = Utils.generateId('fp');
-    var row = {
-      PurchaseID: id,
-      ProjectID: pid,
-      Date: body.date,
-      Product: body.product,
-      QtyKg: qty,
-      UnitCost: unit,
-      TotalCost: qty * unit,
-      Supplier: body.supplier || '',
-      DocumentID: body.documentId || '',
-      CreatedBy: (body._user && body._user.Email) || '',
-      CreatedAt: Utils.nowISO()
-    };
-    Utils.appendObject(sheet, row);
-    this.adjustFeedStock(pid, body.product, qty, unit);
-    return { success: true, data: row };
+    return Audit.withLock(function(){
+      Utils.requireFields(body, ['date', 'product', 'qtyKg', 'unitCost']);
+      var pid = Operations.projectId(body);
+      var sheet = getSheet('FeedPurchases');
+      Operations.ensureHeaders(sheet, ['PurchaseID', 'ProjectID', 'Date', 'Product', 'QtyKg', 'UnitCost', 'TotalCost', 'Supplier', 'DocumentID', 'CreatedBy', 'CreatedAt']);
+      var qty = Utils.toNumber(body.qtyKg);
+      var unit = Utils.toNumber(body.unitCost);
+      var id = Utils.generateId('fp');
+      var row = {
+        PurchaseID: id,
+        ProjectID: pid,
+        Date: body.date,
+        Product: body.product,
+        QtyKg: qty,
+        UnitCost: unit,
+        TotalCost: qty * unit,
+        Supplier: body.supplier || '',
+        DocumentID: body.documentId || '',
+        CreatedBy: (body._user && body._user.Email) || '',
+        CreatedAt: Utils.nowISO()
+      };
+      Utils.appendObject(sheet, row);
+      Operations.adjustFeedStock(pid, body.product, qty, unit);
+      Audit.log('FEED_PURCHASE', 'FeedPurchases', id, body.product+' '+qty+'kg', body._user);
+      SpreadsheetApp.flush();
+      return { success: true, data: row };
+    });
   },
 
   feedInventory: function (body) {
@@ -306,6 +311,7 @@ var Operations = {
   },
 
   createSale: function (body) {
+    return Audit.withLock(function(){
     // Accept trays (preferred) or legacy quantityEggs
     var trays = Utils.toNumber(body.quantityTrays);
     var qtyEggs = Utils.toNumber(body.quantityEggs);
@@ -315,7 +321,7 @@ var Operations = {
     if (!trays && !qtyEggs) return { success: false, error: 'quantityTrays or quantityEggs required' };
     if (body.unitPrice == null || body.unitPrice === '') return { success: false, error: 'unitPrice required' };
 
-    var pid = this.projectId(body);
+    var pid = Operations.projectId(body);
     var sheet = getSheet('Sales');
     // New columns appended; old columns kept for existing data
     this.ensureHeaders(sheet, [
@@ -348,8 +354,11 @@ var Operations = {
       LostTrays: Utils.toNumber(body.lostTrays),
       Notes: body.notes || ''
     };
-    Utils.appendObject(sheet, row);
+     Utils.appendObject(sheet, row);
+    Audit.log('SALE_CREATE', 'Sales', id, 'Trays '+trays+' Rev '+revenue, body._user);
+    SpreadsheetApp.flush();
     return { success: true, data: row };
+    });
   },
 
   /* ── Health & Vaccination ─────────────────────────────── */

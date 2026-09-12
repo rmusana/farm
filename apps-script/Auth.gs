@@ -39,6 +39,11 @@ var Auth = {
     if (!email || !password) {
       return { success: false, error: 'Email and password are required' };
     }
+    // rate limit: 5 attempts per 15min per email
+    var cache = CacheService.getScriptCache();
+    var key = 'login_try_' + email;
+    var tries = Number(cache.get(key) || 0);
+    if (tries >= 5) return { success: false, error: 'Too many attempts. Try again in 15 minutes.' };
 
     var user = this.findUserByEmail(email);
     if (!user) {
@@ -50,12 +55,12 @@ var Auth = {
 
     var hash = this.hashPassword(password, user.UserID);
     if (hash !== String(user.PasswordHash || '')) {
-      // Allow plain comparison only during initial bootstrap when hash not set
       if (String(user.PasswordHash || '') !== password) {
+        cache.put(key, String(tries+1), 900);
         return { success: false, error: 'Invalid email or password' };
       }
     }
-
+    cache.remove(key);
     this.touchLastLogin(user.UserID);
     var token = this.createToken(user.UserID);
     return {
