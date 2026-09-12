@@ -237,7 +237,7 @@ export default {
             </div>
           </div>
         </div>
-          ${this.writable ? `<div style="margin-bottom:16px; display:flex; gap:8px; align-items:center"><button class="btn btn-primary" id="hero-add-capital" style="box-shadow:0 8px 20px rgba(26,92,62,0.22)"><i data-lucide="plus" style="width:14px;height:14px"></i> Add contribution</button><span class="u-text-xs u-text-muted">Investor logs capital here — visible to you</span></div>` : ''}
+          ${canWriteFinanceSection('capital') ? `<div style="margin-bottom:16px; display:flex; gap:8px; align-items:center"><button class="btn btn-primary" id="hero-add-capital" style="box-shadow:0 8px 20px rgba(26,92,62,0.22)"><i data-lucide="plus" style="width:14px;height:14px"></i> Add contribution</button><span class="u-text-xs u-text-muted">Investor logs capital here — Investment Partner only</span></div>` : ''}
           <div class="kpi-grid" style="margin-bottom:var(--space-5)">
           <div class="card kpi-card" style="border-left:3px solid var(--color-accent)"><div class="kpi-label">Total Investment</div><div class="kpi-value">${formatUGX(s.totalInvestment)}</div></div>
           <div class="card kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${formatUGX(s.totalExpenses)}</div></div>
@@ -271,9 +271,11 @@ export default {
   /* ── Capital ──────────────────────────────────────────── */
 
   async secCapital(content, actions) {
-    if (this.writable) {
+    if (canWriteFinanceSection('capital')) {
       actions.innerHTML = '<button class="btn btn-primary btn-sm" id="btn-capital"><i data-lucide="plus" style="width:14px;height:14px"></i> Add contribution</button>';
       actions.querySelector('#btn-capital')?.addEventListener('click', () => this.formCapital());
+    } else {
+      actions.innerHTML = '<span class="u-text-xs u-text-muted">Only Investment Partner / Administrator can add capital</span>';
     }
     try {
       const res = await finApi('capital', 'list');
