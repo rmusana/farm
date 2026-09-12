@@ -51,7 +51,7 @@ export default {
                   <label class="form-label" for="field-password">Password</label>
                   <div class="password-field">
                     <input class="form-input" type="password" name="password" id="field-password" placeholder="Enter your password" required autocomplete="current-password" />
-                    <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password"><svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.3 10.3 0 0 1 12 4c6.5 0 10 8 10 8a17.9 17.9 0 0 1-2.2 3.2"/><path d="M6.1 6.1C3.9 7.7 2 12 2 12s3.5 7 10 7a10.4 10.4 0 0 0 4.2-.9"/></svg></button>
+                    <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><g id="eye-icon"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></g><path id="eye-slash" d="M3 3l18 18" hidden/></svg></button>
                   </div>
                   <div class="form-error" data-error-for="password" hidden></div>
                 </div>
@@ -173,10 +173,11 @@ export default {
         const showing = pwInput.type === 'text';
         pwInput.type = showing ? 'password' : 'text';
         pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-        const open = pwToggle.querySelector('.eye-open');
-        const closed = pwToggle.querySelector('.eye-closed');
-        if (open) open.hidden = !showing;
-        if (closed) closed.hidden = showing;
+        const slash = pwToggle.querySelector('#eye-slash');
+        if (slash) slash.hidden = !showing ? true : false;
+        // single eye — just toggle slash, eye shape stays one
+        const eye = pwToggle.querySelector('#eye-icon');
+        if (eye) eye.style.opacity = showing ? '1' : '1';
       });
     }
 
