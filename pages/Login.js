@@ -84,24 +84,24 @@ export default {
       </div>
 
       <style>
-        .login3d{ position:relative; min-height:100dvh; background: var(--color-bg); overflow:hidden; display:flex; align-items:center; justify-content:center; padding:24px; }
+        .login3d{ position:relative; min-height:100dvh; background: var(--color-bg); overflow:hidden; display:flex; align-items:center; justify-content:center; padding:20px; }
         .login3d-bg{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
         .login3d-grid{ position:absolute; inset:0; background-image: linear-gradient(rgba(26,92,62,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(26,92,62,0.04) 1px, transparent 1px); background-size:32px 32px; mask-image: radial-gradient(800px 600px at 50% 20%, black, transparent 70%); }
         .login3d-orb{ position:absolute; border-radius:50%; filter: blur(18px); opacity:0.45; }
         .login3d-orb--1{ width:560px; height:560px; left:-120px; top:-120px; background: radial-gradient(circle at 30% 30%, #c8e6c9 0%, #a5d6a7 35%, transparent 70%); }
         .login3d-orb--2{ width:720px; height:720px; right:-160px; bottom:-180px; background: radial-gradient(circle at 50% 50%, #f2ede6 0%, #e8e0d6 45%, transparent 70%); }
         .login3d-orb--3{ width:420px; height:420px; left:48%; top:22%; background: radial-gradient(circle at 50% 50%, rgba(26,92,62,0.08), transparent 65%); }
-        .login3d-shell{ position:relative; width:min(1120px, 100%); display:grid; grid-template-columns: 1.05fr 0.95fr; gap:0; background: var(--color-bg-elevated); border:1px solid var(--color-border); border-radius:20px; overflow:hidden; box-shadow: var(--shadow-lg); transform: translateZ(0); }
-        .login3d-visual{ position:relative; background: linear-gradient(165deg, #0f2e22 0%, #1a5c3e 55%, #2f7d5e 100%); color:#fff; padding:32px; display:flex; flex-direction:column; overflow:hidden; }
+        .login3d-shell{ position:relative; width:min(980px, 100%); max-height:min(640px, 92dvh); display:grid; grid-template-columns: 0.95fr 1.05fr; gap:0; background: var(--color-bg-elevated); border:1px solid var(--color-border); border-radius:20px; overflow:hidden; box-shadow: var(--shadow-lg); transform: translateZ(0); }
+        .login3d-visual{ position:relative; background: linear-gradient(165deg, #0f2e22 0%, #1a5c3e 55%, #2f7d5e 100%); color:#fff; padding:28px; display:flex; flex-direction:column; overflow:hidden; }
         .login3d-visual::after{ content:""; position:absolute; right:-40px; bottom:-40px; width:320px; height:320px; background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 60%); pointer-events:none; }
-        .login3d-visual-inner{ position:relative; z-index:1; display:flex; flex-direction:column; height:100%; gap:18px; }
+        .login3d-visual-inner{ position:relative; z-index:1; display:flex; flex-direction:column; height:100%; gap:14px; justify-content:center; }
         .login3d-brand{ display:flex; align-items:center; gap:12px; }
-        .login3d-logo{ width:40px; height:40px; border-radius:12px; background: rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.2); display:grid; place-items:center; font-weight:800; backdrop-filter: blur(8px); }
-        .login3d-brand-name{ font-weight:800; letter-spacing:-0.03em; }
-        .login3d-brand-sub{ font-size:12px; opacity:0.8; }
-        .login3d-headline{ margin:8px 0 0; font-size:34px; line-height:1.05; letter-spacing:-0.03em; font-weight:800; }
+        .login3d-logo{ width:36px; height:36px; border-radius:10px; background: rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.2); display:grid; place-items:center; font-weight:800; font-size:14px; backdrop-filter: blur(8px); }
+        .login3d-brand-name{ font-weight:800; letter-spacing:-0.03em; font-size:15px; }
+        .login3d-brand-sub{ font-size:11px; opacity:0.8; }
+        .login3d-headline{ margin:6px 0 0; font-size:28px; line-height:1.08; letter-spacing:-0.03em; font-weight:800; }
         .login3d-headline span{ color:#c8f0d8; }
-        .login3d-desc{ font-size:13px; line-height:1.6; opacity:0.82; max-width:32ch; }
+        .login3d-desc{ font-size:12px; line-height:1.5; opacity:0.82; max-width:28ch; }
         .login3d-preview{ display:grid; gap:12px; margin-top:auto; }
         .login3d-preview-card{ background: rgba(255,255,255,0.96); color:#141916; border-radius:14px; padding:14px; border:1px solid rgba(255,255,255,0.6); box-shadow: 0 12px 28px rgba(0,0,0,0.18); transform: translateZ(0); }
         .login3d-preview-card--secondary{ background: rgba(255,255,255,0.9); }
@@ -111,12 +111,12 @@ export default {
         .login3d-preview-bar span{ display:block; height:100%; background: var(--color-accent); border-radius:999px; }
         .login3d-preview-foot{ font-size:11px; color:var(--color-text-muted); margin-top:8px; }
         .login3d-footnote{ font-size:11px; opacity:0.7; margin-top:8px; }
-        .login3d-panel{ padding:28px; display:flex; flex-direction:column; justify-content:center; background: var(--color-bg-elevated); }
+        .login3d-panel{ padding:24px; display:flex; flex-direction:column; justify-content:center; background: var(--color-bg-elevated); }
         .login3d-card{ background: var(--color-bg-elevated); border-radius:16px; transform-style: preserve-3d; transition: transform 180ms ease, box-shadow 180ms ease; }
-        .login3d-card-head h1{ margin:0 0 6px; font-size:22px; letter-spacing:-0.02em; }
-        .login3d-card-head p{ margin:0 0 18px; color:var(--color-text-secondary); font-size:13px; }
-        .login3d-trust{ display:flex; gap:8px; align-items:center; justify-content:center; margin-top:14px; font-size:11px; color:var(--color-text-muted); }
-        @media (max-width: 900px){ .login3d-shell{ grid-template-columns:1fr; } .login3d-visual{ min-height:auto; padding:24px; } .login3d-orb--2{ display:none; } }
+        .login3d-card-head h1{ margin:0 0 4px; font-size:20px; letter-spacing:-0.02em; }
+        .login3d-card-head p{ margin:0 0 14px; color:var(--color-text-secondary); font-size:12px; }
+        .login3d-trust{ display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; font-size:11px; color:var(--color-text-muted); }
+        @media (max-width: 900px){ .login3d{ padding:16px; } .login3d-shell{ grid-template-columns:1fr; max-height:none; } .login3d-visual{ min-height:auto; padding:22px; } .login3d-orb--2{ display:none; } }
         @media (prefers-reduced-motion: reduce){ .login3d-card{ transition:none; } }
       </style>
     `;
