@@ -2,8 +2,18 @@
  * API client – all communication goes through Google Apps Script Web App.
  * Set window.RMUSANA_API_URL to the deployed Web App URL.
  */
-const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_TIMEOUT = 15000;
+const CACHE_TTL_MS = 30000;
+const pending = new Map();
+const cache = new Map();
 
+function cacheKey(path, body) {
+  try { return path + '|' + JSON.stringify(body || {}); } catch { return path; }
+}
+function isCacheable(path, body) {
+  const action = (body && body.action) || '';
+  return action === 'list' || action === 'get' || action === 'summary' || action === 'insights' || action === 'activity' || action === 'status' || action === 'compute' || action === 'inventory' || action === 'users';
+}
 function getBaseUrl() {
   return window.RMUSANA_API_URL || '';
 }
@@ -16,51 +26,69 @@ async function request(path, options = {}) {
     throw err;
   }
 
-  const url = `${base}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
-
-  // text/plain avoids CORS preflight (OPTIONS) which Apps Script does not handle.
-  // Token and path travel in the JSON body, not custom headers.
-  const headers = {
-    'Content-Type': 'text/plain;charset=utf-8',
-    ...(options.headers || {})
-  };
-
-  const token = sessionStorage.getItem('rmusana_token');
-
-  const bodyObj = {
-    path: path,
-    ...(options.body || {})
-  };
-  if (token) bodyObj.token = token;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(bodyObj),
-      signal: controller.signal,
-      redirect: 'follow'
-    });
-    clearTimeout(timeoutId);
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.success === false) {
-      const err = new Error(data.error || `Request failed (${res.status})`);
-      err.status = res.status;
-      err.data = data;
-      throw err;
-    }
-    return data;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Request timed out');
-    }
-    throw err;
+  const bodyForKey = options.body || {};
+  const key = cacheKey(path, bodyForKey);
+  const now = Date.now();
+  // serve cached GET-like reads
+  if (!options.noCache && isCacheable(path, bodyForKey)) {
+    const hit = cache.get(key);
+    if (hit && now - hit.t < CACHE_TTL_MS) return hit.v;
+    const pend = pending.get(key);
+    if (pend) return pend;
   }
+
+  const exec = (async () => {
+    const url = `${base}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
+    const headers = {
+      'Content-Type': 'text/plain;charset=utf-8',
+      ...(options.headers || {})
+    };
+    const token = sessionStorage.getItem('rmusana_token');
+    const bodyObj = {
+      path: path,
+      ...(options.body || {})
+    };
+    if (token) bodyObj.token = token;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bodyObj),
+        signal: controller.signal,
+        redirect: 'follow'
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        const err = new Error(data.error || `Request failed (${res.status})`);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      // cache successful reads
+      if (isCacheable(path, bodyForKey)) {
+        cache.set(key, { v: data, t: Date.now() });
+      } else {
+        // invalidate lists on writes
+        cache.clear();
+      }
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') throw new Error('Request timed out');
+      throw err;
+    } finally {
+      pending.delete(key);
+    }
+  })();
+
+  if (isCacheable(path, bodyForKey) && !options.noCache) pending.set(key, exec);
+  return exec;
 }
+
+export function clearApiCache() { cache.clear(); pending.clear(); }
 
 function ops(resource, action, payload = {}) {
   return request('/operations', {

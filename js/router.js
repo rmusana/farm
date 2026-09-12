@@ -120,6 +120,14 @@ function renderNotFound() {
 export function initRouter() {
   pageRoot = document.getElementById('page-root');
   window.addEventListener('hashchange', resolve);
+  // prefetch on hover
+  document.addEventListener('mouseover', (e) => {
+    const a = e.target.closest('[data-nav]');
+    if (a && a.dataset.nav) {
+      const ld = routes.get(a.dataset.nav);
+      if (ld) try { ld(); } catch {}
+    }
+  }, { passive: true });
 
   if (!window.location.hash) {
     window.location.hash = isAuthenticated() ? '#/dashboard' : '#/login';

@@ -42,6 +42,15 @@ async function boot() {
 
   initRouter();
 
+  // Prefetch remaining pages on idle for instant navigation
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      Object.values(pageLoaders).forEach((ld) => { try { ld(); } catch {} });
+    }, { timeout: 3000 });
+  } else {
+    setTimeout(() => Object.values(pageLoaders).forEach((ld) => { try { ld(); } catch {} }), 1500);
+  }
+
   // Offline / online banner
   function syncOnlineStatus() {
     const banner = document.getElementById('offline-banner');
