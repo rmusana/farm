@@ -29,8 +29,6 @@ export default {
               </div>
               <h2 class="login3d-headline">Your flock.<br/>Your capital.<br/><span>One clear view.</span></h2>
               <p class="login3d-desc" style="opacity:0.82; max-width:28ch">Secure access for your farm operations.</p>
-
-              <div class="login3d-footnote">Secure · Role-based · Works on phone & desktop</div>
             </div>
           </aside>
 
