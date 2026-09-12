@@ -15,7 +15,7 @@ function doGet(e) {
   return jsonResponse({
     success: true,
     message: 'LUK54 API is online',
-    version: '1.1'
+    version: '1.2'
   });
 }
 
