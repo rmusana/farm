@@ -509,15 +509,15 @@ export default {
       const pctColor = pct==null ? 'var(--color-text-muted)' : pct>=88 ? 'var(--color-positive)' : pct>=80 ? 'var(--color-caution)' : 'var(--color-critical)';
       const recent = rows.slice(0,14).reverse();
       content.innerHTML = `
-        <div class="card" style="padding:14px; margin-bottom:14px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border)">
+        <div class="card" style="padding:14px; margin-bottom:14px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; background: linear-gradient(135deg, #ffffff 0%, #e9f2ec 100%); border:1px solid #dfe8e1; color:#141916">
           <div style="position:relative; width:84px;height:84px; flex-shrink:0">
-            <svg viewBox="0 0 36 36" style="width:84px;height:84px; transform:rotate(-90deg)"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-border)" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${pctColor}" stroke-width="3" stroke-dasharray="${pct??0},100" stroke-linecap="round"/></svg>
-            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column"><span style="font-weight:800; font-size:16px">${pct!=null?pct+'%':'—'}</span><span style="font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted)">Today</span></div>
+            <svg viewBox="0 0 36 36" style="width:84px;height:84px; transform:rotate(-90deg)"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e3e9e5" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${pctColor}" stroke-width="3" stroke-dasharray="${pct??0},100" stroke-linecap="round"/></svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column"><span style="font-weight:800; font-size:16px; color:#141916">${pct!=null?pct+'%':'—'}</span><span style="font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:#6b7280">Today</span></div>
           </div>
           <div style="flex:1; min-width:180px">
-            <div style="font-size:13px; font-weight:600">Daily production — 3D view</div>
-            <div class="u-text-xs u-text-secondary">${pct!=null ? (pct>=88?'Within 88–92% target':'Below target — review feed/health') : 'Log today to populate'} · ${birds? formatNumber(birds)+' birds':''}</div>
-            <div class="u-text-xs u-text-muted" style="margin-top:4px">Photo: attach via <a data-nav="documents" style="color:var(--color-accent); cursor:pointer">Documents → Upload</a> (link DocumentID in notes)</div>
+            <div style="font-size:13px; font-weight:600; color:#141916">Daily production — 3D view</div>
+            <div style="font-size:12px; color:#4b5563">${pct!=null ? (pct>=88?'Within 88–92% target':'Below target — review feed/health') : 'Log today to populate'} · ${birds? formatNumber(birds)+' birds':''}</div>
+            <div style="font-size:12px; color:#6b7280; margin-top:4px">Photo: attach via <a data-nav="documents" style="color:var(--color-accent); cursor:pointer">Documents → Upload</a> (link DocumentID in notes)</div>
           </div>
           <div style="width:220px; height:70px"><canvas id="daily-spark"></canvas></div>
         </div>
