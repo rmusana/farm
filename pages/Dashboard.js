@@ -12,7 +12,7 @@ import { toastError } from '../components/Toast.js';
 
 function emptySummary() {
   return {
-    healthScore: null, totalInvestment: 0, totalExpenses: 0, revenue: 0, netProfit: 0, roi: 0, capitalRecovery: 0, cashPosition: 0, outstandingFunding: 0, budgetSpent: 0, budgetTotal: 52849172, productionPercent: null, productionTargetMin: 88, productionTargetMax: 92, commercialReached: false, daysToCommercial: null, currentWeek: null, birdCount: 2500, mortalityRate: null, feedDaysRemaining: null, openAlerts: 0, criticalAlerts: 0, eggTrend: [], mortalityTrend: []
+    healthScore: null, totalInvestment: 0, totalExpenses: 0, revenue: 0, netProfit: 0, roi: 0, capitalRecovery: 0, cashPosition: 0, outstandingFunding: 0, budgetSpent: 0, budgetTotal: 55120422, productionPercent: null, productionTargetMin: 88, productionTargetMax: 92, commercialReached: false, daysToCommercial: null, currentWeek: null, birdCount: 2500, mortalityRate: null, feedDaysRemaining: null, openAlerts: 0, criticalAlerts: 0, eggTrend: [], mortalityTrend: []
   };
 }
 function healthLabel(score) {

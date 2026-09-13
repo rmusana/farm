@@ -9,6 +9,7 @@ import { toastSuccess, toastError } from '../components/Toast.js';
 import { canApprove, canWrite, canWriteFinanceSection, financeSectionsForRole } from '../js/auth.js';
 import api from '../js/api.js';
 import { escapeHtml } from '../js/escape.js';
+import { saveEvidenceFile } from './Documents.js';
 
 
 const SECTIONS = [
@@ -76,7 +77,7 @@ async function finApi(resource, action, payload = {}) {
             roi: 0,
             capitalRecovery: 0,
             cashPosition: totalInvestment - totalExpenses,
-            outstandingFunding: Math.max(0, 52849172 - totalInvestment)
+            outstandingFunding: Math.max(0, 55120422 - totalInvestment)
           }
         };
       }
@@ -326,6 +327,9 @@ export default {
       field({ name: 'amount', label: 'Amount (UGX)', type: 'number', required: true }) +
       field({ name: 'purpose', label: 'Purpose', type: 'select', options: CAPITAL_PURPOSES, value: 'General' }) +
       field({ name: 'reference', label: 'Reference' }) +
+      '<div class="form-group"><label class="form-label">Supporting document (optional)</label>' +
+      '<input class="form-input" type="file" id="capital-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" />' +
+      '<div class="form-hint">Receipt or bank slip — stored with this contribution.</div></div>' +
       '</form>';
     openModal({
       title: 'Capital contribution',
@@ -339,7 +343,20 @@ export default {
       if (btn && btn.disabled) return;
       setBusy(btn, true, 'Saving…');
       try {
-        await finApi('capital', 'create', serializeForm(form));
+        let documentId = '';
+        const file = document.getElementById('capital-file')?.files?.[0];
+        if (file) {
+          setBusy(btn, true, 'Uploading…');
+          try {
+            documentId = await saveEvidenceFile(file, 'Receipt');
+          } catch (e) {
+            setBusy(btn, false, null, 'Save');
+            toastError(e.message || 'Upload failed');
+            return;
+          }
+          setBusy(btn, true, 'Saving…');
+        }
+        await finApi('capital', 'create', { ...serializeForm(form), documentId });
         toastSuccess('Contribution recorded');
         closeModal();
         this.renderSection();
@@ -609,6 +626,9 @@ export default {
       field({ name: 'amount', label: 'Amount (UGX)', type: 'number', required: true }) +
       field({ name: 'supplier', label: 'Supplier' }) +
       field({ name: 'notes', label: 'Notes', type: 'textarea' }) +
+      '<div class="form-group"><label class="form-label">Invoice / receipt (optional)</label>' +
+      '<input class="form-input" type="file" id="expense-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" />' +
+      '<div class="form-hint">Stored with this expense for evidence.</div></div>' +
       '</form>';
     openModal({
       title: 'Record expense',
@@ -624,7 +644,20 @@ export default {
       if (btn && btn.disabled) return;
       setBusy(btn, true, 'Saving…');
       try {
-        await finApi('expenses', 'create', serializeForm(form));
+        let documentId = '';
+        const file = document.getElementById('expense-file')?.files?.[0];
+        if (file) {
+          setBusy(btn, true, 'Uploading…');
+          try {
+            documentId = await saveEvidenceFile(file, 'Receipt');
+          } catch (e) {
+            setBusy(btn, false, null, 'Save');
+            toastError(e.message || 'Upload failed');
+            return;
+          }
+          setBusy(btn, true, 'Saving…');
+        }
+        await finApi('expenses', 'create', { ...serializeForm(form), documentId });
         toastSuccess('Expense recorded');
         closeModal();
         this.renderSection();

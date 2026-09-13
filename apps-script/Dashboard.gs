@@ -387,7 +387,7 @@ var Dashboard = {
       else adherence = Math.min(100, Math.max(0, 100 - Math.abs((spent / totalBudget) - 0.5) * 100));
       return { totalBudget: totalBudget, spent: spent, adherence: Math.round(adherence) };
     } catch (e) {
-      return { totalBudget: 52849172, spent: 0, adherence: 70 };
+      return { totalBudget: 55120422, spent: 0, adherence: 70 };
     }
   },
 

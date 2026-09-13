@@ -45,6 +45,23 @@ var Utils = {
     return Utilities.formatDate(new Date(), this.TZ, 'yyyy-MM-dd');
   },
 
+  /** ISO week key 'YYYY-Www' for a 'YYYY-MM-DD' date key. */
+  isoWeek: function (key) {
+    try {
+      var p = String(key).split('-');
+      var d = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+      if (isNaN(d.getTime())) return '';
+      var day = (d.getUTCDay() + 6) % 7;
+      d.setUTCDate(d.getUTCDate() - day + 3);
+      var firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+      var fday = (firstThu.getUTCDay() + 6) % 7;
+      firstThu.setUTCDate(firstThu.getUTCDate() - fday + 3);
+      var week = 1 + Math.round((d.getTime() - firstThu.getTime()) / 604800000);
+      return d.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+    } catch (e) {
+      return '';
+    }
+  },
   /** Canonical YYYY-MM-DD key for any sheet date value (Date object or string).
    *  Date cells come back as Date objects whose String() form never matches
    *  a YYYY-MM-DD prefix — always compare month/day via this helper. */

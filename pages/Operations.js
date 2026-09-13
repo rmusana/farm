@@ -11,6 +11,7 @@ import api from '../js/api.js';
 import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
 import { renderLineChart } from '../components/Charts.js';
 import { escapeHtml } from '../js/escape.js';
+import { saveEvidenceFile } from './Documents.js';
 
 const TABS = [
   { id: 'daily', label: 'Daily Log' },
@@ -157,7 +158,13 @@ async function apiOrLocal(resource, action, payload) {
           { Week: 6, Vaccine: 'FOWL POX', Status: 'Pending', PlannedDate: '2026-07-06' },
           { Week: 8, Vaccine: 'DEWORMING', Status: 'Pending', PlannedDate: '2026-07-20' },
           { Week: 10, Vaccine: 'DEBEAKING', Status: 'Pending', PlannedDate: '2026-08-03' },
-          { Week: 12, Vaccine: 'FOWL TYPHOID', Status: 'Pending', PlannedDate: '2026-08-17' }
+          { Week: 12, Vaccine: 'FOWL TYPHOID', Status: 'Pending', PlannedDate: '2026-08-17' },
+          { Week: 4, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-06-22' },
+          { Week: 8, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-07-20' },
+          { Week: 12, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-08-17' },
+          { Week: 16, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-09-14' },
+          { Week: 20, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-10-12' },
+          { Week: 24, Vaccine: 'NEWCASTLE LASOTA', Status: 'Pending', PlannedDate: '2026-11-09' }
         ];
         localStore('schedule', sched);
       }
@@ -267,6 +274,7 @@ async function apiOrLocal(resource, action, payload) {
       row.DamagedTraysSold = Number(payload.damagedTraysSold) || 0;
       row.LostTrays = Number(payload.lostTrays) || 0;
       row.Notes = payload.notes || '';
+      row.DocumentID = payload.documentId || '';
     }
 
     if (resource === 'feed' && action === 'purchase') {
@@ -1436,6 +1444,9 @@ export default {
       }) +
       field({ name: 'paymentRef', label: 'Payment reference / cheque no.' }) +
       field({ name: 'notes', label: 'Notes', type: 'textarea' }) +
+      '<div class="form-group"><label class="form-label">Receipt (optional)</label>' +
+      '<input class="form-input" type="file" id="sale-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" />' +
+      '<div class="form-hint">Stored with this sale for evidence.</div></div>' +
       '</form>';
 
     openModal({
@@ -1466,6 +1477,19 @@ export default {
       if (btn && btn.disabled) return;
       setBusy(btn, true, 'Saving…');
       const data = serializeForm(form);
+      let documentId = '';
+      const saleFile = document.getElementById('sale-file')?.files?.[0];
+      if (saleFile) {
+        setBusy(btn, true, 'Uploading…');
+        try {
+          documentId = await saveEvidenceFile(saleFile, 'Receipt');
+        } catch (e) {
+          setBusy(btn, false, null, 'Save');
+          toastError(e.message || 'Upload failed');
+          return;
+        }
+        setBusy(btn, true, 'Saving…');
+      }
       const trays = Number(data.quantityTrays) || 0;
       const payload = {
         date: data.date,
@@ -1480,7 +1504,8 @@ export default {
         breakageTraysSold: data.breakageTraysSold || 0,
         damagedTraysSold: data.damagedTraysSold || 0,
         lostTrays: data.lostTrays || 0,
-        notes: data.notes || ''
+        notes: data.notes || '',
+        documentId: documentId
       };
       try {
         await apiOrLocal('sales', 'create', payload);

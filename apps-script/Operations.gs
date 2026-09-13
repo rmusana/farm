@@ -407,7 +407,44 @@ var Operations = {
     if (!rows.length) {
       rows = this.seedVaccinationSchedule(pid);
     }
+    // Backfill monthly boosters on older sheets (idempotent)
+    rows = rows.concat(this.ensureMonthlyLasota(pid));
     return { success: true, data: rows };
+  },
+
+  /** Monthly booster occurrences. Adds dated rows only when none exist. */
+  ensureMonthlyLasota: function (pid) {
+    try {
+      var rows = this.rows('VaccinationSchedule', pid);
+      var hasDated = rows.some(function (r) {
+        return String(r.Vaccine || '').indexOf('LASOTA') >= 0 && String(r.PlannedDate || '') !== '';
+      });
+      if (hasDated) return [];
+      var start = new Date('2026-06-01');
+      try {
+        var projects = Utils.sheetToObjects(getSheet('Projects'));
+        var p = projects.filter(function (x) { return String(x.ProjectID) === String(pid); })[0];
+        if (p && p.StartDate) start = new Date(p.StartDate);
+      } catch (e) {}
+      var sheet = getSheet('VaccinationSchedule');
+      var out = [];
+      [4, 8, 12, 16, 20, 24].forEach(function (w) {
+        var planned = new Date(start.getTime() + (w - 1) * 7 * 86400000);
+        var row = {
+          ScheduleID: Utils.generateId('vs'),
+          ProjectID: pid,
+          Week: w,
+          Vaccine: 'NEWCASTLE LASOTA',
+          PlannedDate: planned.toISOString().slice(0, 10),
+          ActualDate: '',
+          Status: 'Pending',
+          Notes: 'Monthly booster'
+        };
+        Utils.appendObject(sheet, row);
+        out.push(row);
+      });
+      return out;
+    } catch (e) { return []; }
   },
 
   seedVaccinationSchedule: function (pid) {
@@ -419,7 +456,13 @@ var Operations = {
       { Week: 6, Vaccine: 'FOWL POX' },
       { Week: 8, Vaccine: 'DEWORMING' },
       { Week: 10, Vaccine: 'DEBEAKING' },
-      { Week: 12, Vaccine: 'FOWL TYPHOID' }
+      { Week: 12, Vaccine: 'FOWL TYPHOID' },
+      { Week: 4, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' },
+      { Week: 8, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' },
+      { Week: 12, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' },
+      { Week: 16, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' },
+      { Week: 20, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' },
+      { Week: 24, Vaccine: 'NEWCASTLE LASOTA', Notes: 'Monthly booster' }
     ];
     var start = new Date('2026-06-01');
     try {
@@ -440,7 +483,7 @@ var Operations = {
         PlannedDate: planned.toISOString().slice(0, 10),
         ActualDate: '',
         Status: 'Pending',
-        Notes: ''
+        Notes: m.Notes || ''
       };
       Utils.appendObject(sheet, row);
       out.push(row);

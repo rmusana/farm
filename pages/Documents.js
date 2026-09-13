@@ -45,6 +45,54 @@ function iconFor(mime, name) {
   return 'file';
 }
 
+/**
+ * Upload one evidence file and return its DocumentID.
+ * Works online (Drive) and offline (local copy, images ≤500KB).
+ */
+export async function saveEvidenceFile(file, parentType) {
+  if (!file) return '';
+  const base64 = await fileToBase64(file);
+  if (window.RMUSANA_API_URL) {
+    const res = await api.request('/documents', {
+      body: {
+        module: 'documents',
+        action: 'upload',
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        contentBase64: base64,
+        parentType: parentType || 'General',
+        parentId: ''
+      }
+    });
+    const d = res.data || {};
+    return d.DocumentID || d.id || '';
+  }
+  const list = localStore('list');
+  const id = 'local_doc_' + Date.now();
+  const approxBytes = Math.floor(base64.length * 0.75);
+  const dataUrl = (isImage(file.type) && approxBytes <= 500000)
+    ? `data:${file.type};base64,${base64}`
+    : null;
+  list.unshift({
+    DocumentID: id,
+    FileName: file.name,
+    MimeType: file.type,
+    ParentType: parentType || 'General',
+    ParentID: '',
+    UploadedAt: new Date().toISOString(),
+    UploadedBy: 'local',
+    previewDataUrl: dataUrl,
+    dataUrl: dataUrl
+  });
+  try {
+    localStore('list', list);
+  } catch (e) {
+    list.shift();
+    throw new Error('File too large to keep offline — connect the API to upload to Drive.');
+  }
+  return id;
+}
+
 async function listDocs(category) {
   if (window.RMUSANA_API_URL) {
     const res = await api.documents.list({ category: category || undefined });

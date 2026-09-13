@@ -18,6 +18,10 @@ const REPORT_TYPES = [
   { id: 'mortality', name: 'Mortality Report', desc: 'Losses and rates', icon: 'activity' },
   { id: 'feed', name: 'Feed Report', desc: 'Purchases and consumption', icon: 'wheat' },
   { id: 'executive', name: 'Executive Summary', desc: 'One-page investor overview', icon: 'layout-dashboard' },
+  { id: 'health', name: 'Health & Vaccination', desc: 'Schedule compliance and treatments', icon: 'syringe' },
+  { id: 'capital_statement', name: 'Capital Statement', desc: 'Contributions received and outstanding', icon: 'piggy-bank' },
+  { id: 'forecast', name: 'Forecast', desc: '90-day revenue, cost and funding outlook', icon: 'trending-up' },
+  { id: 'weekly_section', name: 'Weekly Section Report', desc: 'One batch, one week of the month', icon: 'calendar-days' },
   { id: 'audit', name: 'Audit Report', desc: 'Transaction package for review', icon: 'shield-check' }
 ];
 
@@ -26,11 +30,51 @@ function currentMonth() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+function isoWeekInput(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - day + 3);
+  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const fday = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fday + 3);
+  const week = 1 + Math.round((t - firstThu) / 604800000);
+  return t.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+}
+
 function localGenerate(type, period) {
-  const capital = JSON.parse(localStorage.getItem('rmusana_fin_capital') || '[]');
-  const expenses = JSON.parse(localStorage.getItem('rmusana_fin_expenses') || '[]');
-  const daily = JSON.parse(localStorage.getItem('rmusana_ops_daily') || '[]');
-  const sales = JSON.parse(localStorage.getItem('rmusana_ops_sales') || '[]');
+  const read = (k) => {
+    try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; }
+  };
+  const capital = read('rmusana_fin_capital');
+  const expenses = read('rmusana_fin_expenses');
+  const daily = read('rmusana_ops_daily');
+  const sales = read('rmusana_ops_sales');
+  const feedInv = read('rmusana_ops_feedInv');
+  const feedPurch = read('rmusana_ops_feed');
+  const invItems = read('rmusana_ops_inventory');
+  const profitRows = read('rmusana_fin_profit');
+  const healthEv = read('rmusana_ops_health');
+  const sched = read('rmusana_ops_schedule');
+  const mixes = read('rmusana_ops_weeklyMix');
+
+  const key10 = (v) => String(v || '').slice(0, 10);
+  const isoWeekOfKey = (k) => {
+    const p = String(k).split('-');
+    const d = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+    if (isNaN(d)) return '';
+    const day = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - day + 3);
+    const f = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const fd = (f.getUTCDay() + 6) % 7;
+    f.setUTCDate(f.getUTCDate() - fd + 3);
+    return d.getUTCFullYear() + '-W' + String(1 + Math.round((d - f) / 604800000)).padStart(2, '0');
+  };
+  const inPeriodEx = (rows, field = 'Date') =>
+    rows.filter((r) => {
+      const k = key10(r[field] || r.date || '');
+      if (/^\d{4}-W\d{2}$/.test(period)) return isoWeekOfKey(k) === period;
+      return k.indexOf(period) === 0;
+    });
 
   const inPeriod = (rows, field = 'Date') =>
     rows.filter((r) => String(r[field] || r.date || '').startsWith(period));
@@ -51,7 +95,7 @@ function localGenerate(type, period) {
       cumulativeContributions: cumCap,
       expendituresIncurred: pe.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0),
       cumulativeExpenditures: cumExp,
-      outstandingFunding: Math.max(0, 52849172 - cumCap),
+      outstandingFunding: Math.max(0, 55120422 - cumCap),
       production: {
         days: pd.length,
         eggs: pd.reduce((s, r) => s + Number(r.EggsCollected || r.eggsCollected || 0), 0),
@@ -99,11 +143,130 @@ function localGenerate(type, period) {
       totalEggs: pd.reduce((s, r) => s + Number(r.EggsCollected || r.eggsCollected || 0), 0),
       totalMortality: pd.reduce((s, r) => s + Number(r.Mortality || r.mortality || 0), 0),
       totalFeedKg: pd.reduce((s, r) => {
-        return s + ['FeedBrandKg', 'FeedHendrixKg', 'FeedLimeKg', 'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg']
-          .reduce((t, k) => t + Number(r[k] || 0), 0);
+        const issued = Number(r.FeedIssuedKg ?? r.feedIssuedKg) || 0;
+        if (issued > 0) return s + issued;
+        return s + ['FeedBrandKg', 'FeedConcentrateKg', 'FeedHendrixKg', 'FeedLimePowderKg', 'FeedLimestoneKg', 'FeedLimeKg', 'FeedSoyaKg', 'FeedSunflowerKg', 'FeedBrokenKg', 'FeedMaizeKg', 'FeedOthersKg']
+          .reduce((t, k) => t + Number(r[k] || r[k.charAt(0).toLowerCase() + k.slice(1)] || 0), 0);
       }, 0),
       records: pd
     };
+  }
+
+  if (type === 'expense') {
+    const pe = inPeriodEx(expenses);
+    const byCategory = {};
+    pe.forEach((r) => {
+      const c = r.Category || r.category || 'Other';
+      byCategory[c] = (byCategory[c] || 0) + Number(r.Amount || r.amount || 0);
+    });
+    return {
+      title: 'Expense Report', period,
+      total: pe.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0),
+      byCategory, lines: pe
+    };
+  }
+
+  if (type === 'revenue') {
+    const ps = inPeriodEx(sales);
+    return {
+      title: 'Revenue Report', period,
+      total: ps.reduce((s, r) => s + Number(r.TotalRevenue || r.totalRevenue || 0), 0),
+      count: ps.length, lines: ps
+    };
+  }
+
+  if (type === 'mortality') {
+    const lines = inPeriodEx(daily).filter((r) => Number(r.Mortality || r.mortality || 0) > 0);
+    return {
+      title: 'Mortality Report', period,
+      total: lines.reduce((s, r) => s + Number(r.Mortality || r.mortality || 0), 0),
+      lines
+    };
+  }
+
+  if (type === 'feed') {
+    const pp = inPeriodEx(feedPurch);
+    return {
+      title: 'Feed Report', period,
+      purchases: pp,
+      inventory: feedInv,
+      purchaseTotal: pp.reduce((s, r) => s + Number(r.TotalCost || r.totalCost || (Number(r.QtyKg || r.qtyKg || 0) * Number(r.UnitCost || r.unitCost || 0))) , 0),
+      weeklyMixTotalKg: mixes.reduce((s, r) => s + Number(r.TotalKg || r.totalKg || 0), 0),
+      weeklyMixes: mixes
+    };
+  }
+
+  if (type === 'inventory') {
+    return { title: 'Inventory Report', period, feed: feedInv, items: invItems };
+  }
+
+  if (type === 'profit') {
+    const lines = profitRows.filter((r) => String(r.Month || r.month || '').indexOf(period) === 0);
+    return {
+      title: 'Profit Distribution', period, lines,
+      paid: lines.filter((d) => (d.Status || d.status) === 'Paid').reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0),
+      pending: lines.filter((d) => (d.Status || d.status) !== 'Paid').reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0)
+    };
+  }
+
+  if (type === 'audit') {
+    return {
+      title: 'Audit Report', period,
+      note: 'Transaction package for the selected period.',
+      capital: inPeriodEx(capital), expenses: inPeriodEx(expenses),
+      sales: inPeriodEx(sales), productionDays: inPeriodEx(daily).length
+    };
+  }
+
+  if (type === 'health') {
+    const today = new Date().toISOString().slice(0, 10);
+    const lines = sched.map((s) => {
+      const planned = key10(s.PlannedDate || s.plannedDate || '');
+      const done = (s.Status || s.status) === 'Completed';
+      return {
+        Week: s.Week ?? s.week, Vaccine: s.Vaccine || s.vaccine,
+        PlannedDate: planned, ActualDate: key10(s.ActualDate || s.actualDate || ''),
+        Status: done ? 'Completed' : (planned !== '' && planned < today ? 'Overdue' : 'Pending')
+      };
+    });
+    return {
+      title: 'Health & Vaccination Compliance', period,
+      scheduled: lines.length,
+      completed: lines.filter((l) => l.Status === 'Completed').length,
+      overdue: lines.filter((l) => l.Status === 'Overdue').length,
+      treatments: inPeriodEx(healthEv).length,
+      lines
+    };
+  }
+
+  if (type === 'capital_statement') {
+    const pc = inPeriodEx(capital);
+    const cum = capital.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0);
+    return {
+      title: 'Capital Contribution Statement', period,
+      received: pc.reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0),
+      cumulative: cum, budgetTotal: 55120422,
+      outstanding: Math.max(0, 55120422 - cum), lines: pc
+    };
+  }
+
+  if (type === 'forecast') {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const recent = (rows, f) => rows.filter((r) => new Date(key10(r.Date || r.date || '')) >= cutoff);
+    const rev30 = recent(sales).reduce((s, r) => s + Number(r.TotalRevenue || r.totalRevenue || 0), 0);
+    const exp30 = recent(expenses).reduce((s, r) => s + Number(r.Amount || r.amount || 0), 0);
+    return {
+      title: 'Forecast', period, horizonDays: 90,
+      projectedRevenue: Math.round(rev30 / 30 * 90),
+      projectedExpenses: Math.round(exp30 / 30 * 90),
+      projectedNetProfit: 0,
+      fundingRequired: Math.max(0, Math.round(exp30 / 30 * 90 - rev30 / 30 * 90))
+    };
+  }
+
+  if (type === 'weekly_section') {
+    return { title: 'Weekly Section Report', period, note: 'Weekly section reporting needs the online service.' };
   }
 
   return { title: REPORT_TYPES.find((t) => t.id === type)?.name || type, period, note: 'Report data will expand as records accumulate.' };
@@ -187,6 +350,40 @@ function buildPreviewHtml(type, data, period) {
     if (data.weeklyMixes && data.weeklyMixes.length) {
       body += '<p class="u-text-sm">Weekly formulations logged: ' + data.weeklyMixes.length + '</p>';
     }
+  } else if (type === 'health') {
+    body +=
+      '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Scheduled</div><div class="kpi-value">' + (data.scheduled || 0) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Completed</div><div class="kpi-value">' + (data.completed || 0) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value">' + (data.overdue || 0) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Treatments logged</div><div class="kpi-value">' + (data.treatments || 0) + '</div></div>' +
+      '</div>';
+  } else if (type === 'capital_statement') {
+    body +=
+      '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Received (period)</div><div class="kpi-value">' + formatUGX(data.received) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Cumulative</div><div class="kpi-value">' + formatUGX(data.cumulative) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-value">' + formatUGX(data.outstanding) + '</div></div>' +
+      '</div>';
+  } else if (type === 'forecast') {
+    body +=
+      '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Horizon</div><div class="kpi-value">' + (data.horizonDays || 0) + ' days</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Projected revenue</div><div class="kpi-value">' + formatUGX(data.projectedRevenue) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Projected expenses</div><div class="kpi-value">' + formatUGX(data.projectedExpenses) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Projected net</div><div class="kpi-value">' + formatUGX(data.projectedNetProfit) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Funding required</div><div class="kpi-value">' + formatUGX(data.fundingRequired) + '</div></div>' +
+      '</div>';
+  } else if (type === 'profit') {
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Paid</div><div class="kpi-value">' + formatUGX(data.paid) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Pending</div><div class="kpi-value">' + formatUGX(data.pending) + '</div></div></div>';
+  } else if (type === 'audit') {
+    body += '<div class="kpi-grid">' +
+      '<div class="card kpi-card"><div class="kpi-label">Capital lines</div><div class="kpi-value">' + ((data.capital || []).length) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Expense lines</div><div class="kpi-value">' + ((data.expenses || []).length) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Sales lines</div><div class="kpi-value">' + ((data.sales || []).length) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Production days</div><div class="kpi-value">' + (data.productionDays || 0) + '</div></div>' +
+      '</div>' + (data.note ? '<p class="u-text-sm u-text-secondary" style="margin-top:var(--space-3)">' + data.note + '</p>' : '');
   } else if (type === 'expense') {
     body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Total expenses</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.totalExpenses) + '</div></div></div>';
   } else if (type === 'revenue') {
@@ -303,6 +500,9 @@ export default {
     };
     granSel?.addEventListener('change', syncPeriodInputs);
     syncPeriodInputs();
+    if (root.querySelector('#report-period-week') && !root.querySelector('#report-period-week').value) {
+      root.querySelector('#report-period-week').value = isoWeekInput(new Date());
+    }
 
     root.querySelector('#btn-print')?.addEventListener('click', () => this.print());
     root.querySelector('#btn-email')?.addEventListener('click', () => this.email());
@@ -311,7 +511,17 @@ export default {
   },
 
   async generate(type, btn) {
-    const period = this.root.querySelector('#report-period')?.value || currentMonth();
+    const gran = this.root.querySelector('#report-granularity')?.value || 'month';
+    let period = currentMonth();
+    if (gran === 'week') {
+      period = this.root.querySelector('#report-period-week')?.value || isoWeekInput(new Date());
+    } else if (gran === 'year') {
+      period = String(this.root.querySelector('#report-period-year')?.value || new Date().getFullYear());
+    } else {
+      period = this.root.querySelector('#report-period')?.value || currentMonth();
+    }
+    const hero = this.root.querySelector('#hero-period');
+    if (hero) hero.textContent = period;
     const week = this.root.querySelector('#report-week-num')?.value || '1';
     const section = this.root.querySelector('#report-section')?.value || 'all';
     const wrap = this.root.querySelector('#report-preview-wrap');
