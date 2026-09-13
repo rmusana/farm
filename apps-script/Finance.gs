@@ -263,8 +263,8 @@ var Finance = {
 
     var commercial = this.isCommercial(pid);
     var sales = this.rows('Sales', pid).filter(function (r) {
-      var d = String(r.Date || '');
-      return d.indexOf(month) === 0;
+      var d = Utils.dateKey(r.Date);
+      return d !== '' && d.indexOf(month) === 0;
     });
     var grossSales = sales.reduce(function (s, r) { return s + Utils.toNumber(r.TotalRevenue); }, 0);
 

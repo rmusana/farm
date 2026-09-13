@@ -103,7 +103,8 @@ var Reports = {
     dateField = dateField || 'Date';
     if (!period) return rows;
     return rows.filter(function (r) {
-      return String(r[dateField] || '').indexOf(period) === 0;
+      var d = Utils.dateKey(r[dateField]);
+      return d !== '' && d.indexOf(period) === 0;
     });
   },
 

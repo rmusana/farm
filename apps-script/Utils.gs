@@ -45,6 +45,27 @@ var Utils = {
     return Utilities.formatDate(new Date(), this.TZ, 'yyyy-MM-dd');
   },
 
+  /** Canonical YYYY-MM-DD key for any sheet date value (Date object or string).
+   *  Date cells come back as Date objects whose String() form never matches
+   *  a YYYY-MM-DD prefix — always compare month/day via this helper. */
+  dateKey: function (val) {
+    try {
+      if (val === null || val === undefined || val === '') return '';
+      if (Object.prototype.toString.call(val) === '[object Date]') {
+        if (isNaN(val.getTime())) return '';
+        return Utilities.formatDate(val, this.TZ, 'yyyy-MM-dd');
+      }
+      var s = String(val).trim();
+      var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m) return m[1];
+      var d = new Date(s);
+      if (!isNaN(d.getTime())) return Utilities.formatDate(d, this.TZ, 'yyyy-MM-dd');
+      return '';
+    } catch (e) {
+      return '';
+    }
+  },
+
   parseDate: function (val) {
     if (!val) return null;
     var d = new Date(val);

@@ -222,7 +222,7 @@ var Dashboard = {
           type: 'production',
           title: 'Daily production logged',
           detail: (r.EggsCollected || 0) + ' eggs · mortality ' + (r.Mortality || 0),
-          date: r.Date,
+          date: Utils.dateKey(r.Date),
           icon: 'clipboard-list'
         });
       });
@@ -234,7 +234,7 @@ var Dashboard = {
           type: 'capital',
           title: 'Capital contribution',
           detail: 'UGX ' + Number(r.Amount || 0).toLocaleString(),
-          date: r.Date,
+          date: Utils.dateKey(r.Date),
           icon: 'banknote'
         });
       });
@@ -246,7 +246,7 @@ var Dashboard = {
           type: 'sale',
           title: 'Egg sale',
           detail: 'UGX ' + Number(r.TotalRevenue || 0).toLocaleString(),
-          date: r.Date,
+          date: Utils.dateKey(r.Date),
           icon: 'shopping-cart'
         });
       });
@@ -307,7 +307,7 @@ var Dashboard = {
       var b = Utils.toNumber(r.ClosingBirds) || Utils.toNumber(r.OpeningBirds) || 1;
       var e = Utils.toNumber(r.EggsCollected);
       return {
-        date: r.Date,
+        date: Utils.dateKey(r.Date),
         eggs: e,
         percent: Math.round((e / b) * 1000) / 10
       };
@@ -327,7 +327,7 @@ var Dashboard = {
       totalMort += m;
       var b = Utils.toNumber(r.OpeningBirds) || Utils.toNumber(r.ClosingBirds);
       if (b > peakBirds) peakBirds = b;
-      trend.push({ date: r.Date, count: m });
+      trend.push({ date: Utils.dateKey(r.Date), count: m });
     });
     var rate = peakBirds > 0 ? Math.round((totalMort / peakBirds) * 1000) / 10 : null;
     return { rate: rate, count: totalMort, trend: trend.slice(-30) };

@@ -312,8 +312,8 @@ var Alerts = {
       var daily = this.sheetRows('DailyProduction', pid);
       var yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      var yStr = yesterday.toISOString().slice(0, 10);
-      var found = daily.some(function (r) { return String(r.Date).indexOf(yStr) === 0; });
+      var yStr = Utils.dateKey(yesterday);
+      var found = daily.some(function (r) { return Utils.dateKey(r.Date) === yStr; });
       // Only alert if flock has started (any production exists)
       if (daily.length > 0 && !found) {
         var res = Alerts.createAlert(
