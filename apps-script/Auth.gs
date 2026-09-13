@@ -261,11 +261,14 @@ var Auth = {
   },
 
   bootstrapUsers: function () {
+    // Account shells only — NO passwords are stored in source. Seeded
+    // accounts are locked (empty hash) until a password is set for each
+    // user under Settings → Users & Roles. Previous placeholder passwords
+    // were removed and purged from history.
     return [
-      { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', PasswordHash: 'REMOVED', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', PasswordHash: 'REMOVED', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', PasswordHash: 'REMOVED', Active: true, GoogleSub: '', LastLogin: '' },
-      { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', PasswordHash: 'REMOVED', Active: true, GoogleSub: '', LastLogin: '' }
+      { UserID: 'usr_admin', Email: 'admin@luk54.com', Name: 'Administrator', Role: 'Administrator', PasswordHash: '', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_investor', Email: 'investor@luk54.com', Name: 'Investment Partner', Role: 'Investor', PasswordHash: '', Active: true, GoogleSub: '', LastLogin: '' },
+      { UserID: 'usr_ops', Email: 'operations@luk54.com', Name: 'Operating Partner', Role: 'OperationsManager', PasswordHash: '', Active: true, GoogleSub: '', LastLogin: '' }
     ];
   },
 

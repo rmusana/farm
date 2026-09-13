@@ -36,12 +36,12 @@ function defaults() {
     off_lay_weeks: 4,
     statement_due_day: 10,
     investor_name: 'Investment Partner',
-    investor_emails: 'robert@luk54.com,moses@luk54.com',
+    investor_emails: 'investor@luk54.com',
     investor_phone: '',
     manager_name: 'Operating Partner',
-    manager_emails: 'joseph@jalodreamfarm.com',
+    manager_emails: 'operations@luk54.com',
     manager_phone: '',
-    alert_emails: 'robert@luk54.com,moses@luk54.com',
+    alert_emails: 'investor@luk54.com,operations@luk54.com',
     email_critical: true,
     email_digest: false,
     theme_default: 'light',
@@ -62,10 +62,9 @@ function localSettings(value) {
 
 function seedUsers() {
   return [
-    { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
-    { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
-    { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', Active: true },
-    { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', Active: true }
+    { UserID: 'usr_admin', Email: 'admin@luk54.com', Name: 'Administrator', Role: 'Administrator', Active: true },
+    { UserID: 'usr_investor', Email: 'investor@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
+    { UserID: 'usr_ops', Email: 'operations@luk54.com', Name: 'Operating Partner', Role: 'OperationsManager', Active: true }
   ];
 }
 

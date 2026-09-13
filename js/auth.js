@@ -261,40 +261,10 @@ export function requireAuth(route) {
 }
 
 /**
- * Bootstrap accounts — replaced by Users sheet when backend is active.
+ * NOTE: No credentials are stored in the frontend. All accounts live in the
+ * backend Users sheet and are managed under Settings → Users & Roles.
+ * A previous bootstrap list with placeholder passwords was removed and purged.
  */
-function getBootstrapUsers() {
-  return [
-    {
-      id: 'usr_investor_a',
-      email: 'robert@luk54.com',
-      password: 'REMOVED',
-      name: 'Investment Partner',
-      role: 'Investor'
-    },
-    {
-      id: 'usr_investor_b',
-      email: 'moses@luk54.com',
-      password: 'REMOVED',
-      name: 'Investment Partner',
-      role: 'Investor'
-    },
-    {
-      id: 'usr_ops',
-      email: 'joseph@jalodreamfarm.com',
-      password: 'REMOVED',
-      name: 'Operating Partner',
-      role: 'OperationsManager'
-    },
-    {
-      id: 'usr_admin',
-      email: 'admin@rmusana.com',
-      password: 'REMOVED',
-      name: 'Administrator',
-      role: 'Administrator'
-    }
-  ];
-}
 
 export function initGoogleSignIn(clientId) {
   if (!clientId || !window.google?.accounts?.id) return;

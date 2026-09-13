@@ -416,7 +416,7 @@ var Alerts = {
 
   notifyEmail: function (alert) {
     // Send to configured investor emails – read from Settings or hardcoded bootstrap
-    var recipients = ['robert@luk54.com', 'moses@luk54.com'];
+    var recipients = ['investor@luk54.com', 'operations@luk54.com'];
     try {
       var settings = Utils.sheetToObjects(getSheet('Settings'));
       var emailRow = settings.filter(function (s) { return s.Key === 'alert_emails'; })[0];
