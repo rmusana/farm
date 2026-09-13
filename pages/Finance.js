@@ -1,7 +1,7 @@
 /**
  * Finance module – Capital, Disbursed, Revenue, Expenses, Allocation, Profit, Cashflow, Forecast
  */
-import { field, serializeForm, validateRequired } from '../components/Form.js';
+import { field, serializeForm, validateRequired, setBusy } from '../components/Form.js';
 import { renderDataTable } from '../components/DataTable.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { formatUGX, formatPercent, formatNumber } from '../components/KPI.js';
@@ -9,18 +9,6 @@ import { toastSuccess, toastError } from '../components/Toast.js';
 import { canApprove, canWrite, canWriteFinanceSection, financeSectionsForRole } from '../js/auth.js';
 import api from '../js/api.js';
 import { escapeHtml } from '../js/escape.js';
-
-function setBusy(btn, busy, labelBusy, labelIdle) {
-  if (!btn) return;
-  if (busy) {
-    btn.dataset.labelIdle = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = labelBusy || 'Saving…';
-  } else {
-    btn.disabled = false;
-    btn.textContent = labelIdle || btn.dataset.labelIdle || 'Save';
-  }
-}
 
 
 const SECTIONS = [
@@ -195,8 +183,16 @@ export default {
     const content = this.root.querySelector('#fin-content');
     const actions = this.root.querySelector('#fin-actions');
     if (!content) return;
-    content.innerHTML = '<div class="skeleton" style="height:160px"></div>';
-    if (actions) actions.innerHTML = '';
+    // Same-section refresh (e.g. right after a save/delete): keep the
+    // current view on screen and refresh silently, no skeleton flash.
+    const silent = this._renderedSection === this.activeSection;
+    this._renderedSection = this.activeSection;
+    if (!silent) {
+      content.innerHTML = '<div class="skeleton" style="height:160px"></div>';
+      if (actions) actions.innerHTML = '';
+    }
+    const prog = silent ? document.getElementById('route-progress') : null;
+    if (prog) prog.hidden = false;
 
     const map = {
       summary: () => this.secSummary(content, actions),
@@ -209,7 +205,11 @@ export default {
       cashflow: () => this.secCashflow(content, actions),
       forecast: () => this.secForecast(content, actions)
     };
-    await (map[this.activeSection] || map.summary)();
+    try {
+      await (map[this.activeSection] || map.summary)();
+    } finally {
+      if (prog) prog.hidden = true;
+    }
     if (window.lucide) window.lucide.createIcons({ nodes: [this.root] });
   },
 
@@ -335,12 +335,16 @@ export default {
     document.getElementById('save-capital')?.addEventListener('click', async () => {
       const form = document.getElementById('form-capital');
       if (!validateRequired(form, ['date', 'amount'])) return;
+      const btn = document.getElementById('save-capital');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await finApi('capital', 'create', serializeForm(form));
         toastSuccess('Contribution recorded');
         closeModal();
         this.renderSection();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     });
@@ -616,12 +620,16 @@ export default {
     document.getElementById('save-expense')?.addEventListener('click', async () => {
       const form = document.getElementById('form-expense');
       if (!validateRequired(form, ['date', 'category', 'amount'])) return;
+      const btn = document.getElementById('save-expense');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await finApi('expenses', 'create', serializeForm(form));
         toastSuccess('Expense recorded');
         closeModal();
         this.renderSection();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     });
@@ -680,14 +688,24 @@ export default {
       }
     };
 
-    actions.querySelector('#btn-compute-alloc')?.addEventListener('click', load);
-    actions.querySelector('#btn-finalize-alloc')?.addEventListener('click', async () => {
+    actions.querySelector('#btn-compute-alloc')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      setBusy(btn, true, 'Computing…');
+      try { await load(); } finally { setBusy(btn, false, null, 'Compute'); }
+    });
+    actions.querySelector('#btn-finalize-alloc')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
       const m = actions.querySelector('#alloc-month')?.value || month;
+      setBusy(btn, true, 'Finalizing…');
       try {
         await finApi('allocation', 'finalize', { month: m });
         toastSuccess('Allocation finalized for ' + m);
-        load();
+        await load();
+        setBusy(btn, false, null, 'Finalize month');
       } catch (err) {
+        setBusy(btn, false, null, 'Finalize month');
         toastError(err.message || 'Finalize failed');
       }
     });
@@ -763,12 +781,16 @@ export default {
     document.getElementById('save-profit')?.addEventListener('click', async () => {
       const form = document.getElementById('form-profit');
       if (!validateRequired(form, ['month', 'amount'])) return;
+      const btn = document.getElementById('save-profit');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await finApi('profit', 'create', serializeForm(form));
         toastSuccess('Distribution recorded');
         closeModal();
         this.renderSection();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     });
@@ -843,7 +865,12 @@ export default {
       }
     };
 
-    actions.querySelector('#btn-fc')?.addEventListener('click', load);
+    actions.querySelector('#btn-fc')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      setBusy(btn, true, 'Loading…');
+      try { await load(); } finally { setBusy(btn, false, null, 'Refresh'); }
+    });
     await load();
   },
 

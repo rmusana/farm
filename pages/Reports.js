@@ -284,7 +284,10 @@ export default {
     `;
 
     root.querySelectorAll('[data-report]').forEach((btn) => {
-      btn.addEventListener('click', () => this.generate(btn.dataset.report));
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        this.generate(btn.dataset.report, btn);
+      });
     });
 
     
@@ -307,13 +310,18 @@ export default {
     if (window.lucide) window.lucide.createIcons({ nodes: [root] });
   },
 
-  async generate(type) {
+  async generate(type, btn) {
     const period = this.root.querySelector('#report-period')?.value || currentMonth();
     const week = this.root.querySelector('#report-week-num')?.value || '1';
     const section = this.root.querySelector('#report-section')?.value || 'all';
     const wrap = this.root.querySelector('#report-preview-wrap');
     const preview = this.root.querySelector('#report-preview');
     const title = this.root.querySelector('#preview-title');
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.style.opacity = '0.55';
+    }
     wrap.style.display = 'block';
     preview.innerHTML = '<div class="skeleton" style="height:160px"></div>';
     title.textContent = (REPORT_TYPES.find((t) => t.id === type)?.name || type) +
@@ -354,6 +362,12 @@ export default {
     } catch (err) {
       preview.innerHTML = '<div class="empty-state"><p class="empty-state-desc">' + (err.message || 'Failed') + '</p></div>';
       toastError(err.message || 'Generate failed');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        btn.style.opacity = '';
+      }
     }
   },
 

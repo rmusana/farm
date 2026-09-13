@@ -17,6 +17,9 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.btn[aria-busy="true"] {
+  cursor: wait;
+}
 
 .btn-primary {
   background: var(--color-accent);

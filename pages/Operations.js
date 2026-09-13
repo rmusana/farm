@@ -448,8 +448,16 @@ export default {
     const content = this.root.querySelector('#ops-content');
     const actions = this.root.querySelector('#ops-actions');
     if (!content) return;
-    content.innerHTML = '<div class="skeleton" style="height:140px"></div>';
-    if (actions) actions.innerHTML = '';
+    // Same-tab refresh (e.g. right after a save/delete): keep the current
+    // table on screen and refresh silently instead of flashing a skeleton.
+    const silent = this._renderedTab === this.activeTab;
+    this._renderedTab = this.activeTab;
+    if (!silent) {
+      content.innerHTML = '<div class="skeleton" style="height:140px"></div>';
+      if (actions) actions.innerHTML = '';
+    }
+    const prog = silent ? document.getElementById('route-progress') : null;
+    if (prog) prog.hidden = false;
 
     const map = {
       daily: function () { return this.tabDaily(content, actions); }.bind(this),
@@ -463,7 +471,11 @@ export default {
       notes: function () { return this.tabNotes(content, actions); }.bind(this)
     };
     const fn = map[this.activeTab] || map.daily;
-    await fn();
+    try {
+      await fn();
+    } finally {
+      if (prog) prog.hidden = true;
+    }
     if (window.lucide) window.lucide.createIcons({ nodes: [this.root] });
   },
 
@@ -603,24 +615,52 @@ export default {
     }
   },
 
-  async formDaily() {
+  formDaily() {
     var sections = DEFAULT_SECTIONS.slice();
-    try {
-      var secRes = await apiOrLocal('sections', 'list');
-      if (secRes.data && secRes.data.length) {
-        sections = secRes.data.map(function (r) {
-          return {
-            sectionId: r.SectionID || r.sectionId,
-            label: r.Label || r.label,
-            birdCount: Number(r.BirdCount || r.birdCount || 0)
-          };
-        });
-      }
-    } catch (e) {}
+    var sectionTouched = false;
+    var birdsTouched = false;
 
-    var sectionOpts = sections.map(function (s) {
-      return s.sectionId + ' — ' + s.label + ' (' + s.birdCount + ')';
-    });
+    function sectionOpts() {
+      return sections.map(function (s) {
+        return s.sectionId + ' — ' + s.label + ' (' + s.birdCount + ')';
+      });
+    }
+    function escOpt(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Live section counts load in the background — the modal opens
+    // instantly with defaults and fills in when the server responds.
+    // Never overwrites what the user already typed or selected.
+    apiOrLocal('sections', 'list').then(function (secRes) {
+      if (!secRes.data || !secRes.data.length) return;
+      sections = secRes.data.map(function (r) {
+        return {
+          sectionId: r.SectionID || r.sectionId,
+          label: r.Label || r.label,
+          birdCount: Number(r.BirdCount || r.birdCount || 0)
+        };
+      });
+      var form = document.getElementById('form-daily');
+      if (!form) return; // modal already closed
+      var sel = form.querySelector('[name="section"]');
+      if (sel) {
+        var current = sel.value;
+        sel.innerHTML = sectionOpts().map(function (o) {
+          return '<option value="' + escOpt(o) + '">' + escOpt(o) + '</option>';
+        }).join('');
+        var opts = sectionOpts();
+        if (sectionTouched && opts.indexOf(current) >= 0) {
+          sel.value = current;
+        } else {
+          sel.value = opts[0];
+          var id = String(sel.value || '').split('—')[0].trim();
+          var found = sections.find(function (s) { return s.sectionId === id; });
+          if (found && !birdsTouched && form.openingBirds) form.openingBirds.value = found.birdCount;
+        }
+      }
+      updateProdPct();
+    }).catch(function () {});
 
     var html =
       '<form id="form-daily">' +
@@ -629,8 +669,8 @@ export default {
         name: 'section',
         label: 'Batch / section',
         type: 'select',
-        options: sectionOpts,
-        value: sectionOpts[0]
+        options: sectionOpts(),
+        value: sectionOpts()[0]
       }) +
       '<div class="form-row">' +
       field({ name: 'openingBirds', label: 'Opening birds', type: 'number', required: true, value: String(sections[0] ? sections[0].birdCount : 0) }) +
@@ -687,11 +727,15 @@ export default {
     var formEl = document.getElementById('form-daily');
     ['openingBirds', 'eggsTrays'].forEach(function (n) {
       var input = formEl.querySelector('[name="' + n + '"]');
-      if (input) input.addEventListener('input', updateProdPct);
+      if (input) input.addEventListener('input', function () {
+        if (n === 'openingBirds') birdsTouched = true;
+        updateProdPct();
+      });
     });
     var secSelect = formEl.querySelector('[name="section"]');
     if (secSelect) {
       secSelect.addEventListener('change', function () {
+        sectionTouched = true;
         var id = String(secSelect.value || '').split('—')[0].trim();
         var found = sections.find(function (s) { return s.sectionId === id; });
         if (found && formEl.openingBirds) formEl.openingBirds.value = found.birdCount;
@@ -900,12 +944,16 @@ export default {
     document.getElementById('save-flock').addEventListener('click', async function () {
       const form = document.getElementById('form-flock');
       if (!validateRequired(form, ['date', 'eventType', 'quantity'])) return;
+      const btn = document.getElementById('save-flock');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await apiOrLocal('flock', 'create', serializeForm(form));
         toastSuccess('Flock event saved');
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -1197,12 +1245,16 @@ export default {
     document.getElementById('save-feed').addEventListener('click', async function () {
       const form = document.getElementById('form-feed');
       if (!validateRequired(form, ['date', 'product', 'qtyKg', 'unitCost'])) return;
+      const btn = document.getElementById('save-feed');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await apiOrLocal('feed', 'purchase', serializeForm(form));
         toastSuccess('Feed purchase recorded');
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -1410,6 +1462,9 @@ export default {
     document.getElementById('save-sale').addEventListener('click', async function () {
       const form = document.getElementById('form-sale');
       if (!validateRequired(form, ['date', 'quantityTrays', 'unitPrice'])) return;
+      const btn = document.getElementById('save-sale');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       const data = serializeForm(form);
       const trays = Number(data.quantityTrays) || 0;
       const payload = {
@@ -1433,6 +1488,7 @@ export default {
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(document.getElementById('save-sale'), false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -1554,16 +1610,37 @@ export default {
     }
   },
 
-  async formHealth() {
+  formHealth() {
     var types = ['Vaccination', 'Medication', 'Treatment', 'Other'];
     var products = VACCINES.concat(MEDS);
-    try {
-      var opt = await apiOrLocal('health', 'options');
+    var typeTouched = false;
+    var productTouched = false;
+
+    function escOpt(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function refillSelect(sel, opts, touched) {
+      if (!sel) return;
+      var current = sel.value;
+      sel.innerHTML = '<option value="">Select…</option>' + opts.map(function (o) {
+        return '<option value="' + escOpt(o) + '">' + escOpt(o) + '</option>';
+      }).join('');
+      if (touched && opts.indexOf(current) >= 0) sel.value = current;
+    }
+
+    // Custom lists load in the background — modal opens instantly.
+    apiOrLocal('health', 'options').then(function (opt) {
+      var changed = false;
       if (opt.data) {
-        if (opt.data.types && opt.data.types.length) types = opt.data.types;
-        if (opt.data.products && opt.data.products.length) products = opt.data.products;
+        if (opt.data.types && opt.data.types.length) { types = opt.data.types; changed = true; }
+        if (opt.data.products && opt.data.products.length) { products = opt.data.products; changed = true; }
       }
-    } catch (e) {}
+      if (!changed) return;
+      var form = document.getElementById('form-health');
+      if (!form) return; // modal already closed
+      refillSelect(form.querySelector('[name="type"]'), types.concat(['— Add new type —']), typeTouched);
+      refillSelect(form.querySelector('[name="product"]'), products.concat(['— Add new product —']), productTouched);
+    }).catch(function () {});
 
     const html =
       '<form id="form-health">' +
@@ -1602,6 +1679,13 @@ export default {
         '<button class="btn btn-secondary" data-modal-close>Cancel</button>' +
         '<button class="btn btn-primary" id="save-health">Save</button>'
     });
+    var healthForm = document.getElementById('form-health');
+    if (healthForm) {
+      var typeSel = healthForm.querySelector('[name="type"]');
+      var prodSel = healthForm.querySelector('[name="product"]');
+      if (typeSel) typeSel.addEventListener('change', function () { typeTouched = true; });
+      if (prodSel) prodSel.addEventListener('change', function () { productTouched = true; });
+    }
     document.getElementById('save-health').addEventListener('click', async function () {
       const form = document.getElementById('form-health');
       if (!validateRequired(form, ['date'])) return;
@@ -1613,15 +1697,15 @@ export default {
       let product = data.product;
       if (type && type.indexOf('Add new type') >= 0) {
         type = (data.customType || '').trim();
-        if (!type) { toastError('Enter the new type name'); return; }
+        if (!type) { setBusy(btn, false, null, 'Save'); toastError('Enter the new type name'); return; }
         try { await apiOrLocal('health', 'addOption', { kind: 'Type', value: type }); } catch (e) {}
       }
       if (product && product.indexOf('Add new product') >= 0) {
         product = (data.customProduct || '').trim();
-        if (!product) { toastError('Enter the new product name'); return; }
+        if (!product) { setBusy(btn, false, null, 'Save'); toastError('Enter the new product name'); return; }
         try { await apiOrLocal('health', 'addOption', { kind: 'Product', value: product }); } catch (e) {}
       }
-      if (!type || !product) { toastError('Type and product required'); return; }
+      if (!type || !product) { setBusy(btn, false, null, 'Save'); toastError('Type and product required'); return; }
       try {
         await apiOrLocal('health', 'create', {
           date: data.date,
@@ -1738,12 +1822,16 @@ export default {
     document.getElementById('save-inv').addEventListener('click', async function () {
       const form = document.getElementById('form-inv');
       if (!validateRequired(form, ['name', 'quantity'])) return;
+      const btn = document.getElementById('save-inv');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await apiOrLocal('inventory', 'adjust', serializeForm(form));
         toastSuccess('Inventory updated');
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));
@@ -1830,12 +1918,16 @@ export default {
     document.getElementById('save-note').addEventListener('click', async function () {
       const form = document.getElementById('form-note');
       if (!validateRequired(form, ['content'])) return;
+      const btn = document.getElementById('save-note');
+      if (btn && btn.disabled) return;
+      setBusy(btn, true, 'Saving…');
       try {
         await apiOrLocal('notes', 'create', serializeForm(form));
         toastSuccess('Note saved');
         closeModal();
         this.renderTab();
       } catch (err) {
+        setBusy(btn, false, null, 'Save');
         toastError(err.message || 'Save failed');
       }
     }.bind(this));

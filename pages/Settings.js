@@ -1,7 +1,7 @@
 /**
  * Settings – users, project, notifications, system, backup
  */
-import { field, serializeForm, validateRequired } from '../components/Form.js';
+import { field, serializeForm, validateRequired, setBusy } from '../components/Form.js';
 import { renderDataTable } from '../components/DataTable.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
@@ -199,6 +199,9 @@ export default {
     if (canEdit) {
       panel.querySelector('#form-project')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn && submitBtn.disabled) return;
+        setBusy(submitBtn, true, 'Saving…');
         const data = serializeForm(e.target);
         const partial = {
           project_name: data.project_name,
@@ -219,6 +222,8 @@ export default {
           toastSuccess('Project settings saved');
         } catch (err) {
           toastError(err.message || 'Save failed');
+        } finally {
+          setBusy(e.target.querySelector('button[type="submit"]'), false, null, 'Save project settings');
         }
       });
     }
@@ -248,6 +253,9 @@ export default {
     if (canEdit) {
       panel.querySelector('#form-contacts')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn && submitBtn.disabled) return;
+        setBusy(submitBtn, true, 'Saving…');
         const data = serializeForm(e.target);
         const partial = {
           investor_name: data.investor_name,
@@ -266,6 +274,8 @@ export default {
           toastSuccess('Contacts saved');
         } catch (err) {
           toastError(err.message || 'Save failed');
+        } finally {
+          setBusy(e.target.querySelector('button[type="submit"]'), false, null, 'Save contacts');
         }
       });
     }
@@ -484,6 +494,9 @@ export default {
     if (canEdit) {
       panel.querySelector('#form-notif')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn && submitBtn.disabled) return;
+        setBusy(submitBtn, true, 'Saving…');
         const form = e.target;
         const partial = {
           alert_emails: form.alert_emails.value,
@@ -497,6 +510,8 @@ export default {
           toastSuccess('Notification settings saved');
         } catch (err) {
           toastError(err.message || 'Save failed');
+        } finally {
+          setBusy(e.target.querySelector('button[type="submit"]'), false);
         }
       });
     }
@@ -531,6 +546,9 @@ export default {
         toastError('Password must be at least 6 characters');
         return;
       }
+      const pwBtn = e.target.querySelector('button[type="submit"]');
+      if (pwBtn && pwBtn.disabled) return;
+      setBusy(pwBtn, true, 'Updating…');
       try {
         if (window.RMUSANA_API_URL) {
           await api.request('/auth', {
@@ -549,6 +567,8 @@ export default {
         e.target.reset();
       } catch (err) {
         toastError(err.message || 'Password change failed');
+      } finally {
+        setBusy(e.target.querySelector('button[type="submit"]'), false);
       }
     });
   },
@@ -597,7 +617,10 @@ export default {
       <pre id="backup-result" class="u-text-xs u-text-muted" style="margin-top:var(--space-4);white-space:pre-wrap"></pre>
     `;
 
-    panel.querySelector('#btn-backup')?.addEventListener('click', async () => {
+    panel.querySelector('#btn-backup')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      setBusy(btn, true, 'Backing up…');
       try {
         if (window.RMUSANA_API_URL) {
           const res = await api.request('/settings', { body: { module: 'settings', action: 'backup' } });
@@ -608,6 +631,8 @@ export default {
         }
       } catch (err) {
         toastError(err.message || 'Backup failed');
+      } finally {
+        setBusy(btn, false);
       }
     });
 

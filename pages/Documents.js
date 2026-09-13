@@ -1,7 +1,7 @@
 /**
  * Documents module – upload, list, preview, download, link metadata
  */
-import { field, serializeForm, validateRequired } from '../components/Form.js';
+import { field, serializeForm, validateRequired, setBusy } from '../components/Form.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { escapeHtml } from '../js/escape.js';
@@ -116,7 +116,10 @@ export default {
   async load() {
     const el = this.root.querySelector('#docs-grid');
     if (!el) return;
-    el.innerHTML = `<div class="skeleton" style="height:140px"></div>`;
+    const silent = !el.querySelector('.skeleton') && el.innerHTML.trim() !== '';
+    if (!silent) el.innerHTML = `<div class="skeleton" style="height:140px"></div>`;
+    const prog = silent ? document.getElementById('route-progress') : null;
+    if (prog) prog.hidden = false;
     try {
       const docs = await listDocs(this.filter === 'all' ? null : this.filter);
       if (!docs.length) {
@@ -129,6 +132,7 @@ export default {
             </div>
           </div></div>`;
         if (window.lucide) window.lucide.createIcons({ nodes: [el] });
+        if (prog) prog.hidden = true;
         return;
       }
 
@@ -160,7 +164,9 @@ export default {
         card.addEventListener('click', () => this.preview(card.dataset.doc, docs));
       });
       if (window.lucide) window.lucide.createIcons({ nodes: [el] });
+      if (prog) prog.hidden = true;
     } catch (err) {
+      if (prog) prog.hidden = true;
       el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${escapeHtml(err.message)}</p></div>`;
     }
   },
@@ -294,7 +300,9 @@ export default {
 
     openModal({ title: name, content: body, footer, size: 'lg' });
 
-    document.getElementById('btn-del-doc')?.addEventListener('click', async () => {
+    document.getElementById('btn-del-doc')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
       const ok = await confirmDialog({
         title: 'Delete document',
         message: 'Delete this document? This cannot be undone.',
@@ -302,6 +310,7 @@ export default {
         danger: true
       });
       if (!ok) return;
+      setBusy(btn, true, 'Deleting…');
       try {
         if (window.RMUSANA_API_URL) {
           await api.request('/documents', { body: { module: 'documents', action: 'delete', documentId: id } });
@@ -312,6 +321,7 @@ export default {
         closeModal();
         this.load();
       } catch (err) {
+        setBusy(btn, false, null, 'Delete');
         toastError(err.message || 'Delete failed');
       }
     });

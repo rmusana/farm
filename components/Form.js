@@ -84,4 +84,30 @@ export function validateRequired(formEl, fields) {
   return ok;
 }
 
-export default { field, serializeForm, showFieldError, clearErrors, validateRequired };
+/**
+ * Instant press feedback for async buttons: disables + swaps label
+ * synchronously so every tap feels immediate. Restore with setBusy(btn, false).
+ */
+export function setBusy(btn, busy, labelBusy, labelIdle) {
+  if (!btn) return;
+  if (busy) {
+    if (btn.disabled) return true;
+    btn.dataset.busyHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.textContent = labelBusy || 'Saving…';
+    return true;
+  }
+  btn.disabled = false;
+  btn.removeAttribute('aria-busy');
+  if (btn.dataset.busyHtml != null) {
+    btn.innerHTML = btn.dataset.busyHtml;
+    delete btn.dataset.busyHtml;
+  } else {
+    btn.textContent = labelIdle || 'Save';
+  }
+  if (window.lucide) window.lucide.createIcons({ nodes: [btn] });
+  return false;
+}
+
+export default { field, serializeForm, showFieldError, clearErrors, validateRequired, setBusy };

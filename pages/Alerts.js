@@ -2,6 +2,7 @@
  * Alerts module – list, filter, resolve, acknowledge, run engine
  */
 import { toastSuccess, toastError } from '../components/Toast.js';
+import { setBusy } from '../components/Form.js';
 import { escapeHtml } from '../js/escape.js';
 import { setState } from '../js/state.js';
 import { canWrite } from '../js/auth.js';
@@ -155,7 +156,10 @@ export default {
       });
     });
 
-    root.querySelector('#btn-run-engine')?.addEventListener('click', async () => {
+    root.querySelector('#btn-run-engine')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      setBusy(btn, true, 'Running…');
       try {
         if (window.RMUSANA_API_URL) {
           await api.request('/alerts', { body: { module: 'alerts', action: 'run' } });
@@ -166,6 +170,8 @@ export default {
         await this.load();
       } catch (err) {
         toastError(err.message || 'Engine failed');
+      } finally {
+        setBusy(btn, false, null, 'Run engine');
       }
     });
 
@@ -176,7 +182,12 @@ export default {
   async load() {
     const el = this.root.querySelector('#alerts-list');
     if (!el) return;
-    el.innerHTML = `<div class="skeleton" style="height:160px"></div>`;
+    // Refreshing the same inbox (e.g. after resolve): keep current cards
+    // on screen and update silently instead of flashing a skeleton.
+    const silent = !el.querySelector('.skeleton') && el.innerHTML.trim() !== '';
+    if (!silent) el.innerHTML = `<div class="skeleton" style="height:160px"></div>`;
+    const prog = silent ? document.getElementById('route-progress') : null;
+    if (prog) prog.hidden = false;
     try {
       const alerts = await fetchAlerts(this.filter);
       setState({ alerts: alerts.filter((a) => String(a.Status ?? a.status ?? '').toLowerCase() === 'open') });
@@ -191,6 +202,7 @@ export default {
             </div>
           </div></div>`;
         if (window.lucide) window.lucide.createIcons({ nodes: [el] });
+        if (prog) prog.hidden = true;
         return;
       }
 
@@ -223,14 +235,34 @@ export default {
       }).join('');
 
       el.querySelectorAll('[data-resolve]').forEach((btn) => {
-        btn.addEventListener('click', () => this.resolve(btn.dataset.resolve));
+        btn.addEventListener('click', async (e) => {
+          const b = e.currentTarget;
+          if (b.disabled) return;
+          setBusy(b, true, 'Resolving…');
+          try {
+            await this.resolve(btn.dataset.resolve);
+          } finally {
+            if (b.isConnected) setBusy(b, false);
+          }
+        });
       });
       el.querySelectorAll('[data-ack]').forEach((btn) => {
-        btn.addEventListener('click', () => this.acknowledge(btn.dataset.ack));
+        btn.addEventListener('click', async (e) => {
+          const b = e.currentTarget;
+          if (b.disabled) return;
+          setBusy(b, true, 'Working…');
+          try {
+            await this.acknowledge(btn.dataset.ack);
+          } finally {
+            if (b.isConnected) setBusy(b, false);
+          }
+        });
       });
 
       if (window.lucide) window.lucide.createIcons({ nodes: [el] });
+      if (prog) prog.hidden = true;
     } catch (err) {
+      if (prog) prog.hidden = true;
       el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${escapeHtml(err.message)}</p></div>`;
     }
   },
