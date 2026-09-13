@@ -324,7 +324,7 @@ var Operations = {
     var pid = Operations.projectId(body);
     var sheet = getSheet('Sales');
     // New columns appended; old columns kept for existing data
-    this.ensureHeaders(sheet, [
+    Operations.ensureHeaders(sheet, [
       'SaleID', 'ProjectID', 'Date', 'Customer', 'QuantityEggs', 'UnitPrice', 'TotalRevenue',
       'PaymentStatus', 'PaymentRef', 'DocumentID', 'CreatedBy', 'CreatedAt',
       'QuantityTrays', 'SaleCategory', 'EggType', 'BreakageTraysSold', 'DamagedTraysSold', 'LostTrays', 'Notes'
