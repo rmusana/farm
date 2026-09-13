@@ -504,8 +504,8 @@ export default {
             <option value="month" selected>Monthly</option>
             <option value="year">Yearly</option>
           </select>
-          <input type="week" class="form-input" id="report-period-week" style="width:auto;height:36px;display:none" />
-          <input type="month" class="form-input" id="report-period" value="${currentMonth()}" style="width:auto;height:36px" />
+          <input type="week" class="form-input" id="report-period-week" style="width:auto;max-width:150px;height:36px;display:none" />
+          <input type="month" class="form-input" id="report-period" value="${currentMonth()}" style="width:auto;max-width:150px;height:36px" />
           <input type="number" class="form-input" id="report-period-year" min="2024" max="2100" value="${new Date().getFullYear()}" style="width:100px;height:36px;display:none" />
           <span id="batch-controls" style="display:none;gap:var(--space-2);flex-wrap:wrap;align-items:center">
             <select class="form-input" id="report-week-num" style="width:auto;height:36px" title="Week of month for batch report">
@@ -544,6 +544,13 @@ export default {
         .card[data-report]:hover{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent); }
         .card[data-report]:active{ transform: translateY(-1px); }
         .card[data-report].selected{ border-color: var(--color-accent); box-shadow: var(--shadow-md); }
+        .page-header-actions{ max-width: 100%; }
+        .page-header-actions .form-input{ min-width: 0; }
+        @media (max-width: 640px){
+          .page-header-actions{ width: 100%; }
+          .page-header-actions .form-input{ flex: 1 1 140px; max-width: 100%; }
+          .page-header-actions label{ flex-basis: 100%; }
+        }
       </style>
 
       ${REPORT_GROUPS.map((g) => `
