@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rmusana-v1.2.1';
+const CACHE_NAME = 'rmusana-v1.2.2';
 const ASSETS = [
   './',
   './index.html',
@@ -65,6 +65,36 @@ self.addEventListener('fetch', (event) => {
     || url.hostname === 'accounts.google.com'
     || url.hostname === 'cdn.jsdelivr.net'
     || url.hostname === 'unpkg.com') {
+    return;
+  }
+  // App code (same-origin JS/CSS/HTML): network-first so the running
+  // bundle is always a consistent set from one deploy. Falls back to
+  // cache when offline — mixed old/new modules can never execute.
+  const isAppCode = url.origin === self.location.origin &&
+    (event.request.destination === 'script' ||
+      event.request.destination === 'style' ||
+      event.request.mode === 'navigate' ||
+      url.pathname.endsWith('.js') ||
+      url.pathname.endsWith('.css') ||
+      url.pathname.endsWith('.html'));
+  if (isAppCode) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const network = fetch(event.request, { cache: 'no-cache' }).then((response) => {
+          if (response && response.status === 200) cache.put(event.request, response.clone());
+          return response;
+        });
+        const timeout = new Promise((resolve) => setTimeout(async () => {
+          resolve(await caches.match(event.request));
+        }, 4000));
+        try {
+          const res = await Promise.race([network, timeout]);
+          if (res) return res;
+        } catch {}
+        return (await caches.match(event.request)) || network;
+      })()
+    );
     return;
   }
   // stale-while-revalidate with 3s network timeout
