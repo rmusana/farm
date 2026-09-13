@@ -944,23 +944,10 @@ var Operations = {
   },
 
   createAlert: function (pid, priority, title, reason, action, deadline) {
+    // Route through the central creator so open-title dedup applies.
+    // (Direct appends here used to create one duplicate per day per product.)
     try {
-      var sheet = getSheet('Alerts');
-      this.ensureHeaders(sheet, ['AlertID', 'ProjectID', 'Type', 'Priority', 'Title', 'Reason', 'SuggestedAction', 'Deadline', 'Status', 'CreatedAt', 'ResolvedAt', 'ResolvedBy']);
-      Utils.appendObject(sheet, {
-        AlertID: Utils.generateId('al'),
-        ProjectID: pid,
-        Type: 'Operations',
-        Priority: priority,
-        Title: title,
-        Reason: reason,
-        SuggestedAction: action,
-        Deadline: deadline || '',
-        Status: 'Open',
-        CreatedAt: Utils.nowISO(),
-        ResolvedAt: '',
-        ResolvedBy: ''
-      });
+      return Alerts.createAlert(pid, priority, title, reason, action, deadline, 'Operations');
     } catch (e) {}
   }
 };
