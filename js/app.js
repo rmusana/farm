@@ -64,7 +64,52 @@ async function boot() {
 
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('./sw.js');
+      const reg = await navigator.serviceWorker.register('./sw.js');
+
+      // Auto-update flow: when a new worker is ready, show a one-tap
+      // refresh banner instead of requiring a manual hard refresh.
+      let refreshing = false;
+      const showUpdateBanner = () => {
+        const banner = document.getElementById('update-banner');
+        if (!banner || !banner.hidden && banner.classList.contains('visible')) return;
+        banner.hidden = false;
+        banner.classList.add('visible');
+      };
+      document.getElementById('update-refresh')?.addEventListener('click', async () => {
+        try { await reg.update(); } catch {}
+        const waiting = reg.waiting;
+        if (waiting) {
+          waiting.postMessage({ type: 'SKIP_WAITING' });
+          // controllerchange handler below performs the reload
+          setTimeout(() => { if (!refreshing) window.location.reload(); }, 1500);
+        } else {
+          window.location.reload();
+        }
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      const trackInstalling = (worker) => {
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      };
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner();
+      reg.addEventListener('updatefound', () => trackInstalling(reg.installing));
+
+      // Check for updates periodically and when the tab regains focus
+      const checkForUpdate = () => { try { reg.update(); } catch {} };
+      setInterval(checkForUpdate, 30 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+      window.addEventListener('online', checkForUpdate);
     } catch (e) {
       console.warn('SW registration failed', e);
     }
