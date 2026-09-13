@@ -6,24 +6,35 @@ import { toastSuccess, toastError } from '../components/Toast.js';
 import { canApprove } from '../js/auth.js';
 import api from '../js/api.js';
 
-const REPORT_TYPES = [
-  { id: 'monthly_statement', name: 'Monthly Investment Statement', desc: 'Contributions, expenditures and production', icon: 'file-text' },
-  { id: 'production', name: 'Production Report', desc: 'Eggs, mortality, feed by day', icon: 'egg' },
-  { id: 'financial', name: 'Financial Report', desc: 'Revenue allocation and P&L', icon: 'landmark' },
-  { id: 'budget', name: 'Capital vs Disbursed', desc: 'Capital contributed vs amounts spent', icon: 'calculator' },
-  { id: 'expense', name: 'Expense Report', desc: 'Expenditures by category', icon: 'receipt' },
-  { id: 'revenue', name: 'Revenue Report', desc: 'Egg sales and revenue', icon: 'shopping-cart' },
-  { id: 'profit', name: 'Profit Distribution', desc: 'Investor profit payments', icon: 'banknote' },
-  { id: 'inventory', name: 'Inventory Report', desc: 'Feed and stock levels', icon: 'package' },
-  { id: 'mortality', name: 'Mortality Report', desc: 'Losses and rates', icon: 'activity' },
-  { id: 'feed', name: 'Feed Report', desc: 'Purchases and consumption', icon: 'wheat' },
-  { id: 'executive', name: 'Executive Summary', desc: 'One-page investor overview', icon: 'layout-dashboard' },
-  { id: 'health', name: 'Health & Vaccination', desc: 'Schedule compliance and treatments', icon: 'syringe' },
-  { id: 'capital_statement', name: 'Capital Statement', desc: 'Contributions received and outstanding', icon: 'piggy-bank' },
-  { id: 'forecast', name: 'Forecast', desc: '90-day revenue, cost and funding outlook', icon: 'trending-up' },
-  { id: 'weekly_section', name: 'Weekly Section Report', desc: 'One batch, one week of the month', icon: 'calendar-days' },
-  { id: 'audit', name: 'Audit Report', desc: 'Transaction package for review', icon: 'shield-check' }
+const REPORT_GROUPS = [
+  { id: 'close', label: 'Month close', hint: 'Start here at month end' },
+  { id: 'money', label: 'Money', hint: 'Capital, spending and profit' },
+  { id: 'production', label: 'Production', hint: 'Birds, eggs, feed and health' },
+  { id: 'overviews', label: 'Overviews', hint: 'One-page and audit packs' }
 ];
+
+const REPORT_TYPES = [
+  { id: 'monthly_statement', group: 'close', name: 'Monthly Investment Statement', desc: 'The investor statement for one month', shows: 'Contributions · spending · production · sales', icon: 'file-text', empty: { text: 'No records in this period yet. Log daily production, expenses and capital first.', nav: 'operations', label: 'Go to Operations' } },
+  { id: 'profit', group: 'close', name: 'Profit Distribution', desc: 'Investor profit payments', shows: 'Distributions by month: paid vs pending', icon: 'banknote', empty: { text: 'No distributions recorded. Finalize the monthly allocation under Finance first.', nav: 'finance', label: 'Go to Finance' } },
+  { id: 'financial', group: 'money', name: 'Financial Report', desc: 'Revenue allocation and P&L', shows: 'Investment · allocation splits · net profit', icon: 'landmark' },
+  { id: 'capital_statement', group: 'money', name: 'Capital Statement', desc: 'Contributions received and outstanding', shows: 'Every contribution + cumulative and outstanding', icon: 'piggy-bank', empty: { text: 'No contributions in this period. Record one under Finance → Capital.', nav: 'finance', label: 'Go to Finance' } },
+  { id: 'expense', group: 'money', name: 'Expense Report', desc: 'Expenditures by category', shows: 'Totals by category + every line', icon: 'receipt', empty: { text: 'No expenses in this period. Record spending under Finance → Expenses or Operations.', nav: 'finance', label: 'Go to Finance' } },
+  { id: 'revenue', group: 'money', name: 'Revenue Report', desc: 'Egg sales and revenue', shows: 'Every sale: customer, trays, revenue, payment', icon: 'shopping-cart', empty: { text: 'No sales in this period. Record sales under Operations → Sales.', nav: 'operations', label: 'Go to Operations' } },
+  { id: 'budget', group: 'money', name: 'Capital vs Disbursed', desc: 'Capital contributed vs amounts spent', shows: 'Budget vs actual per line', icon: 'calculator' },
+  { id: 'forecast', group: 'money', name: 'Forecast', desc: '90-day revenue, cost and funding outlook', shows: 'Projected revenue, costs and funding need', icon: 'trending-up' },
+  { id: 'production', group: 'production', name: 'Production Report', desc: 'Eggs, mortality, feed by day', shows: 'Day-by-day eggs, losses and feed', icon: 'egg', empty: { text: 'No production logged in this period. Use Operations → Log Day.', nav: 'operations', label: 'Go to Operations' } },
+  { id: 'weekly_section', group: 'production', name: 'Weekly Section Report', desc: 'One batch, one week of the month', shows: 'Birds, eggs, feed and sales for a single batch-week', icon: 'calendar-days', needsBatch: true },
+  { id: 'mortality', group: 'production', name: 'Mortality Report', desc: 'Losses and rates', shows: 'Losses day by day with rates', icon: 'activity', empty: { text: 'No mortality in this period — good news. Losses appear here automatically from daily logs.', nav: 'operations', label: 'Go to Operations' } },
+  { id: 'feed', group: 'production', name: 'Feed Report', desc: 'Purchases and consumption', shows: 'Purchases, stock and weekly mixes', icon: 'wheat', empty: { text: 'No feed purchases in this period. Record them under Operations → Feed.', nav: 'operations', label: 'Go to Operations' } },
+  { id: 'health', group: 'production', name: 'Health & Vaccination', desc: 'Schedule compliance and treatments', shows: 'Planned vs completed vaccinations', icon: 'syringe' },
+  { id: 'inventory', group: 'production', name: 'Inventory Report', desc: 'Feed and stock levels', shows: 'Feed stock and store items on hand', icon: 'package' },
+  { id: 'executive', group: 'overviews', name: 'Executive Summary', desc: 'One-page investor overview', shows: 'Money + production on a single page', icon: 'layout-dashboard' },
+  { id: 'audit', group: 'overviews', name: 'Audit Report', desc: 'Transaction package for review', shows: 'Every line item behind the numbers', icon: 'shield-check' }
+];
+
+function reportMeta(id) {
+  return REPORT_TYPES.find((t) => t.id === id) || { id, name: id, desc: '', shows: '' };
+}
 
 function currentMonth() {
   const d = new Date();
@@ -273,6 +284,27 @@ function localGenerate(type, period) {
 }
 
 function buildPreviewHtml(type, data, period) {
+  const dstr = (v) => String(v || '').slice(0, 10);
+  const esc = (v) => String(v ?? '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const meta = reportMeta(type);
+  // Detail table with cap + helpful empty state (also prints into the PDF)
+  const linesTable = (title, headers, rows, mapFn) => {
+    rows = rows || [];
+    let html = '<h3 class="u-text-sm u-font-semibold" style="margin:var(--space-4) 0 var(--space-2)">' + esc(title) + ' (' + rows.length + ')</h3>';
+    if (!rows.length) {
+      const em = meta.empty;
+      html += '<div class="empty-state" style="padding:12px"><p class="empty-state-desc">' + esc(em?.text || 'No records in this period.') + '</p>';
+      if (em?.nav) html += '<button class="btn btn-secondary btn-sm" style="margin-top:8px" data-nav="' + em.nav + '">' + esc(em.label || 'Add records') + '</button>';
+      html += '</div>';
+      return html;
+    }
+    const shown = rows.slice(0, 25);
+    html += '<div class="table-wrap"><table class="data-table"><thead><tr>' + headers.map((h) => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
+      shown.map((r) => '<tr>' + mapFn(r).map((c) => '<td>' + esc(c ?? '—') + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table></div>';
+    if (rows.length > shown.length) html += '<p class="u-text-xs u-text-muted">Showing 25 of ' + rows.length + ' lines — the printed PDF carries the same detail.</p>';
+    return html;
+  };
   const fmt = (n) => formatUGX(n).replace('UGX', '').trim();
   let body = `<h2 style="margin:0 0 4px">${data.title || type}</h2>
     <p class="u-text-xs u-text-muted" style="margin-bottom:var(--space-4)">Period: ${period} · LUK54 Flock</p>`;
@@ -358,6 +390,10 @@ function buildPreviewHtml(type, data, period) {
       '<div class="card kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value">' + (data.overdue || 0) + '</div></div>' +
       '<div class="card kpi-card"><div class="kpi-label">Treatments logged</div><div class="kpi-value">' + (data.treatments || 0) + '</div></div>' +
       '</div>';
+    body += linesTable('Schedule', ['Week', 'Vaccine', 'Planned', 'Actual', 'Status'], data.lines, (r) => [
+      r.Week ?? r.week ?? '—', r.Vaccine || r.vaccine || '—', dstr(r.PlannedDate || r.plannedDate),
+      dstr(r.ActualDate || r.actualDate), r.Status || r.status || '—'
+    ]);
   } else if (type === 'capital_statement') {
     body +=
       '<div class="kpi-grid">' +
@@ -365,6 +401,9 @@ function buildPreviewHtml(type, data, period) {
       '<div class="card kpi-card"><div class="kpi-label">Cumulative</div><div class="kpi-value">' + formatUGX(data.cumulative) + '</div></div>' +
       '<div class="card kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-value">' + formatUGX(data.outstanding) + '</div></div>' +
       '</div>';
+    body += linesTable('Contributions', ['Date', 'Amount', 'Purpose', 'Reference'], data.lines, (r) => [
+      dstr(r.Date || r.date), formatUGX(r.Amount ?? r.amount), r.Purpose || r.purpose || '—', r.Reference || r.reference || '—'
+    ]);
   } else if (type === 'forecast') {
     body +=
       '<div class="kpi-grid">' +
@@ -377,6 +416,10 @@ function buildPreviewHtml(type, data, period) {
   } else if (type === 'profit') {
     body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Paid</div><div class="kpi-value">' + formatUGX(data.paid) + '</div></div>' +
       '<div class="card kpi-card"><div class="kpi-label">Pending</div><div class="kpi-value">' + formatUGX(data.pending) + '</div></div></div>';
+    body += linesTable('Distributions', ['Month', 'Amount', 'Status', 'Paid date', 'Reference'], data.lines, (r) => [
+      dstr(r.Month || r.month), formatUGX(r.Amount ?? r.amount), r.Status || r.status || 'Pending',
+      dstr(r.PaidDate || r.paidDate), r.Reference || r.reference || '—'
+    ]);
   } else if (type === 'audit') {
     body += '<div class="kpi-grid">' +
       '<div class="card kpi-card"><div class="kpi-label">Capital lines</div><div class="kpi-value">' + ((data.capital || []).length) + '</div></div>' +
@@ -384,14 +427,53 @@ function buildPreviewHtml(type, data, period) {
       '<div class="card kpi-card"><div class="kpi-label">Sales lines</div><div class="kpi-value">' + ((data.sales || []).length) + '</div></div>' +
       '<div class="card kpi-card"><div class="kpi-label">Production days</div><div class="kpi-value">' + (data.productionDays || 0) + '</div></div>' +
       '</div>' + (data.note ? '<p class="u-text-sm u-text-secondary" style="margin-top:var(--space-3)">' + data.note + '</p>' : '');
+    body += linesTable('Capital', ['Date', 'Amount', 'Purpose'], data.capital, (r) => [
+      dstr(r.Date || r.date), formatUGX(r.Amount ?? r.amount), r.Purpose || r.purpose || '—'
+    ]);
+    body += linesTable('Expenses', ['Date', 'Category', 'Amount'], data.expenses, (r) => [
+      dstr(r.Date || r.date), r.Category || r.category || '—', formatUGX(r.Amount ?? r.amount)
+    ]);
+    body += linesTable('Sales', ['Date', 'Customer', 'Revenue'], data.sales, (r) => [
+      dstr(r.Date || r.date), r.Customer || r.customer || '—', formatUGX(r.TotalRevenue ?? r.totalRevenue)
+    ]);
   } else if (type === 'expense') {
+    const byCat = data.byCategory || {};
     body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Total expenses</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.totalExpenses) + '</div></div></div>';
+    const cats = Object.keys(byCat);
+    if (cats.length) {
+      body += '<h3 class="u-text-sm u-font-semibold" style="margin:var(--space-4) 0 var(--space-2)">By category</h3><div class="table-wrap"><table class="data-table"><tbody>' +
+        cats.map((c) => '<tr><td>' + c.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td style="text-align:right">' + formatUGX(byCat[c]) + '</td></tr>').join('') +
+        '</tbody></table></div>';
+    }
+    body += linesTable('Lines', ['Date', 'Category', 'Detail', 'Amount', 'Supplier'], data.lines, (r) => [
+      dstr(r.Date || r.date), r.Category || r.category || '—', r.SubCategory || r.subCategory || '—',
+      formatUGX(r.Amount ?? r.amount), r.Supplier || r.supplier || '—'
+    ]);
   } else if (type === 'revenue') {
-    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.revenue) + '</div></div></div>';
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value">' + formatUGX(data.total != null ? data.total : data.revenue) + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Sales</div><div class="kpi-value">' + (data.count || (data.lines || []).length) + '</div></div></div>';
+    body += linesTable('Lines', ['Date', 'Customer', 'Trays', 'Revenue', 'Payment'], data.lines, (r) => [
+      dstr(r.Date || r.date), r.Customer || r.customer || '—',
+      formatNumber(r.QuantityTrays ?? r.quantityTrays, 1),
+      formatUGX(r.TotalRevenue ?? r.totalRevenue), r.PaymentStatus || r.paymentStatus || '—'
+    ]);
   } else if (type === 'mortality') {
     body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Total mortality</div><div class="kpi-value">' + formatNumber(data.total) + '</div></div></div>';
+    body += linesTable('Lines', ['Date', 'Deaths', 'Opening', 'Rate %'], data.lines, (r) => [
+      dstr(r.Date || r.date), formatNumber(r.Mortality ?? r.mortality),
+      formatNumber(r.OpeningBirds ?? r.openingBirds), r.Rate != null ? r.Rate + '%' : '—'
+    ]);
   } else if (type === 'inventory') {
-    body += '<p class="u-text-sm">Feed stock lines: ' + ((data.feed && data.feed.length) || 0) + ' · Inventory items: ' + ((data.items && data.items.length) || 0) + '</p>';
+    const feed = data.feed || [];
+    const items = data.items || [];
+    body += '<div class="kpi-grid"><div class="card kpi-card"><div class="kpi-label">Feed products</div><div class="kpi-value">' + feed.length + '</div></div>' +
+      '<div class="card kpi-card"><div class="kpi-label">Store items</div><div class="kpi-value">' + items.length + '</div></div></div>';
+    body += linesTable('Feed stock', ['Product', 'Stock (kg)', 'Unit cost'], feed, (r) => [
+      r.Product || r.product || '—', formatNumber(r.ClosingStock ?? r.closingStock, 1), formatUGX(r.UnitCost ?? r.unitCost)
+    ]);
+    body += linesTable('Store items', ['Name', 'Quantity', 'Unit'], items, (r) => [
+      r.Name || r.name || '—', formatNumber(r.Quantity ?? r.quantity), r.Unit || r.unit || '—'
+    ]);
   } else {
     if (data.note) body += '<p class="u-text-sm u-text-secondary">' + data.note + '</p>';
     if (data.total != null) body += '<p class="u-font-semibold">Total: ' + formatUGX(data.total) + '</p>';
@@ -404,6 +486,7 @@ function buildPreviewHtml(type, data, period) {
 
 export default {
   lastResult: null,
+  selectedType: 'monthly_statement',
 
   async render(root) {
     this.root = root;
@@ -415,6 +498,7 @@ export default {
           <p class="u-text-secondary u-text-sm">Generate, preview, print and email statements</p>
         </div>
         <div class="page-header-actions" style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+          <label class="u-text-xs u-text-muted" for="report-granularity">Step 2 · Period</label>
           <select class="form-input" id="report-granularity" style="width:auto;height:36px">
             <option value="week">Weekly</option>
             <option value="month" selected>Monthly</option>
@@ -423,50 +507,64 @@ export default {
           <input type="week" class="form-input" id="report-period-week" style="width:auto;height:36px;display:none" />
           <input type="month" class="form-input" id="report-period" value="${currentMonth()}" style="width:auto;height:36px" />
           <input type="number" class="form-input" id="report-period-year" min="2024" max="2100" value="${new Date().getFullYear()}" style="width:100px;height:36px;display:none" />
-          <select class="form-input" id="report-week-num" style="width:auto;height:36px" title="Week of month for batch report">
-            <option value="1">Week 1</option>
-            <option value="2">Week 2</option>
-            <option value="3">Week 3</option>
-            <option value="4">Week 4</option>
-            <option value="5">Week 5</option>
-          </select>
-          <select class="form-input" id="report-section" style="width:auto;height:36px" title="Batch / section">
-            <option value="all">All sections</option>
-            <option value="A">Section A</option>
-            <option value="B">Section B</option>
-            <option value="C">Section C</option>
-            <option value="Others">Others</option>
-          </select>
+          <span id="batch-controls" style="display:none;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+            <select class="form-input" id="report-week-num" style="width:auto;height:36px" title="Week of month for batch report">
+              <option value="1">Week 1</option>
+              <option value="2">Week 2</option>
+              <option value="3">Week 3</option>
+              <option value="4">Week 4</option>
+              <option value="5">Week 5</option>
+            </select>
+            <select class="form-input" id="report-section" style="width:auto;height:36px" title="Batch / section">
+              <option value="all">All sections</option>
+              <option value="A">Section A</option>
+              <option value="B">Section B</option>
+              <option value="C">Section C</option>
+              <option value="Others">Others</option>
+            </select>
+          </span>
         </div>
       </div>
 
-      <div class="card" style="padding:16px; margin-bottom:16px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border); display:flex; gap:12px; align-items:center">
-        <div style="width:44px;height:44px; border-radius:12px; background: var(--color-accent); color:#fff; display:grid; place-items:center; flex-shrink:0"><i data-lucide="file-bar-chart" style="width:22px;height:22px"></i></div>
-        <div><div style="font-weight:700; font-size:14px">Generate any report — one click</div><div class="u-text-xs u-text-muted">Monthly Statement · Production · Finance · Executive — farm-branded, print-ready</div></div>
-        <div style="margin-left:auto; font-size:11px; color:var(--color-text-muted)">Period: <strong id="hero-period">${currentMonth()}</strong></div>
+      <div class="card" style="padding:16px; margin-bottom:16px; background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-subtle)); border:1px solid var(--color-border);">
+        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:12px">
+          <div style="display:flex; gap:8px; align-items:center; font-size:12px; color:var(--color-text-secondary)"><span class="badge badge-accent">1</span> Pick a report below</div>
+          <div style="display:flex; gap:8px; align-items:center; font-size:12px; color:var(--color-text-secondary)"><span class="badge badge-accent">2</span> Set the period above</div>
+          <div style="display:flex; gap:8px; align-items:center; font-size:12px; color:var(--color-text-secondary)"><span class="badge badge-accent">3</span> Preview, then Print / Email</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+          <div style="width:44px;height:44px; border-radius:12px; background: var(--color-accent); color:#fff; display:grid; place-items:center; flex-shrink:0"><i data-lucide="file-bar-chart" style="width:22px;height:22px"></i></div>
+          <div style="flex:1; min-width:200px"><div style="font-weight:700; font-size:14px">Monthly Investment Statement</div><div class="u-text-xs u-text-muted">The standard month-end pack — start here. Period: <strong id="hero-period">${currentMonth()}</strong></div></div>
+          <button class="btn btn-primary btn-sm" id="btn-recommended">Generate</button>
+        </div>
       </div>
 
       <style>
         .card[data-report]{ transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), border-color 160ms; }
         .card[data-report]:hover{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent); }
         .card[data-report]:active{ transform: translateY(-1px); }
+        .card[data-report].selected{ border-color: var(--color-accent); box-shadow: var(--shadow-md); }
       </style>
 
-      <div class="kpi-grid" id="report-cards" style="margin-bottom:var(--space-6)">
-        ${REPORT_TYPES.map((t) => `
-          <button class="card" data-report="${t.id}" style="padding:var(--space-5);text-align:left;cursor:pointer;border:1px solid var(--color-border);background:var(--color-bg-elevated); position:relative; overflow:hidden">
-            <div style="display:flex;align-items:center;gap:var(--space-3)">
-              <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <i data-lucide="${t.icon}" style="width:20px;height:20px"></i>
+      ${REPORT_GROUPS.map((g) => `
+        <h3 class="u-text-sm u-font-semibold" style="margin:0 0 4px">${g.label} <span class="u-text-xs u-text-muted" style="font-weight:400">· ${g.hint}</span></h3>
+        <div class="kpi-grid" style="margin-bottom:var(--space-5)">
+          ${REPORT_TYPES.filter((t) => t.group === g.id).map((t) => `
+            <button class="card ${this.selectedType === t.id ? 'selected' : ''}" data-report="${t.id}" style="padding:var(--space-4);text-align:left;cursor:pointer;border:1px solid var(--color-border);background:var(--color-bg-elevated); position:relative; overflow:hidden">
+              <div style="display:flex;align-items:center;gap:var(--space-3)">
+                <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <i data-lucide="${t.icon}" style="width:20px;height:20px"></i>
+                </div>
+                <div>
+                  <div class="u-font-semibold u-text-sm">${t.name}</div>
+                  <div class="u-text-xs u-text-muted">${t.desc}</div>
+                  <div class="u-text-xs" style="color:var(--color-accent);margin-top:2px">Shows: ${t.shows}</div>
+                </div>
               </div>
-              <div>
-                <div class="u-font-semibold u-text-sm">${t.name}</div>
-                <div class="u-text-xs u-text-muted">${t.desc}</div>
-              </div>
-            </div>
-          </button>
-        `).join('')}
-      </div>
+            </button>
+          `).join('')}
+        </div>
+      `).join('')}
 
       <div class="card" id="report-preview-wrap" style="display:none">
         <div class="card-header">
@@ -480,11 +578,28 @@ export default {
       </div>
     `;
 
+    const markSelected = (type) => {
+      this.selectedType = type;
+      root.querySelectorAll('[data-report]').forEach((b) => {
+        b.classList.toggle('selected', b.dataset.report === type);
+      });
+      const bc = root.querySelector('#batch-controls');
+      if (bc) bc.style.display = type === 'weekly_section' ? 'inline-flex' : 'none';
+    };
+
     root.querySelectorAll('[data-report]').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
+        markSelected(btn.dataset.report);
         this.generate(btn.dataset.report, btn);
       });
+    });
+
+    root.querySelector('#btn-recommended')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      markSelected('monthly_statement');
+      this.generate('monthly_statement', btn);
     });
 
     
@@ -511,6 +626,12 @@ export default {
   },
 
   async generate(type, btn) {
+    this.selectedType = type;
+    this.root.querySelectorAll('[data-report]').forEach((b) => {
+      b.classList.toggle('selected', b.dataset.report === type);
+    });
+    const bc = this.root.querySelector('#batch-controls');
+    if (bc) bc.style.display = type === 'weekly_section' ? 'inline-flex' : 'none';
     const gran = this.root.querySelector('#report-granularity')?.value || 'month';
     let period = currentMonth();
     if (gran === 'week') {
