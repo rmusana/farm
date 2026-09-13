@@ -2,6 +2,7 @@
  * Alerts module – list, filter, resolve, acknowledge, run engine
  */
 import { toastSuccess, toastError } from '../components/Toast.js';
+import { escapeHtml } from '../js/escape.js';
 import { setState } from '../js/state.js';
 import { canWrite } from '../js/auth.js';
 import api from '../js/api.js';
@@ -83,17 +84,18 @@ function runLocalEngine() {
 }
 
 async function fetchAlerts(status) {
+  const norm = (a) => String(a.Status ?? a.status ?? '').toLowerCase();
   if (window.RMUSANA_API_URL) {
     const res = await api.alerts.list();
     let data = res.data || [];
-    if (status === 'Open') data = data.filter((a) => a.Status === 'Open' || a.Status === 'Acknowledged' || a.status === 'Open');
-    if (status === 'Resolved') data = data.filter((a) => a.Status === 'Resolved' || a.status === 'Resolved');
+    if (status === 'Open') data = data.filter((a) => norm(a) === 'open' || norm(a) === 'acknowledged');
+    if (status === 'Resolved') data = data.filter((a) => norm(a) === 'resolved');
     return data;
   }
   runLocalEngine();
   let list = localStore('list');
-  if (status === 'Open') list = list.filter((a) => a.Status === 'Open' || a.Status === 'Acknowledged');
-  if (status === 'Resolved') list = list.filter((a) => a.Status === 'Resolved');
+  if (status === 'Open') list = list.filter((a) => norm(a) === 'open' || norm(a) === 'acknowledged');
+  if (status === 'Resolved') list = list.filter((a) => norm(a) === 'resolved');
   list.sort((a, b) => {
     const pa = PRIORITY_ORDER[a.Priority] ?? 9;
     const pb = PRIORITY_ORDER[b.Priority] ?? 9;
@@ -104,9 +106,10 @@ async function fetchAlerts(status) {
 }
 
 function badgeClass(priority) {
-  if (priority === 'Critical') return 'critical';
-  if (priority === 'High') return 'caution';
-  if (priority === 'Low') return 'neutral';
+  const p = String(priority || '').toLowerCase();
+  if (p === 'critical') return 'critical';
+  if (p === 'high') return 'caution';
+  if (p === 'low') return 'neutral';
   return 'info';
 }
 
@@ -176,7 +179,7 @@ export default {
     el.innerHTML = `<div class="skeleton" style="height:160px"></div>`;
     try {
       const alerts = await fetchAlerts(this.filter);
-      setState({ alerts: alerts.filter((a) => (a.Status || a.status) === 'Open') });
+      setState({ alerts: alerts.filter((a) => String(a.Status ?? a.status ?? '').toLowerCase() === 'open') });
 
       if (!alerts.length) {
         el.innerHTML = `
@@ -200,14 +203,14 @@ export default {
             <div style="display:flex;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap">
               <div style="flex:1;min-width:200px">
                 <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap">
-                  <span class="badge badge-${badgeClass(priority)}">${priority}</span>
-                  <span class="badge badge-neutral">${a.Type || a.type || 'System'}</span>
-                  <span class="badge badge-${status === 'Resolved' ? 'positive' : status === 'Acknowledged' ? 'info' : 'caution'}">${status}</span>
+                  <span class="badge badge-${badgeClass(priority)}">${escapeHtml(priority)}</span>
+                  <span class="badge badge-neutral">${escapeHtml(a.Type || a.type || 'System')}</span>
+                  <span class="badge badge-${status === 'Resolved' ? 'positive' : status === 'Acknowledged' ? 'info' : 'caution'}">${escapeHtml(status)}</span>
                 </div>
-                <div class="u-font-semibold" style="margin-bottom:4px">${a.Title || a.title}</div>
-                <p class="u-text-sm u-text-secondary" style="margin-bottom:4px">${a.Reason || a.reason || ''}</p>
-                <p class="u-text-xs u-text-muted"><strong>Action:</strong> ${a.SuggestedAction || a.suggestedAction || '—'}</p>
-                ${a.Deadline || a.deadline ? `<p class="u-text-xs u-text-muted">Deadline: ${a.Deadline || a.deadline}</p>` : ''}
+                <div class="u-font-semibold" style="margin-bottom:4px">${escapeHtml(a.Title || a.title)}</div>
+                <p class="u-text-sm u-text-secondary" style="margin-bottom:4px">${escapeHtml(a.Reason || a.reason || '')}</p>
+                <p class="u-text-xs u-text-muted"><strong>Action:</strong> ${escapeHtml(a.SuggestedAction || a.suggestedAction || '—')}</p>
+                ${a.Deadline || a.deadline ? `<p class="u-text-xs u-text-muted">Deadline: ${escapeHtml(a.Deadline || a.deadline)}</p>` : ''}
                 <p class="u-text-xs u-text-muted" style="margin-top:4px">${a.CreatedAt ? new Date(a.CreatedAt).toLocaleString() : ''}</p>
               </div>
               ${status !== 'Resolved' && canWrite('operations') ? `
@@ -228,7 +231,7 @@ export default {
 
       if (window.lucide) window.lucide.createIcons({ nodes: [el] });
     } catch (err) {
-      el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
+      el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${escapeHtml(err.message)}</p></div>`;
     }
   },
 

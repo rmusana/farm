@@ -8,7 +8,9 @@ const pending = new Map();
 const cache = new Map();
 
 function cacheKey(path, body) {
-  try { return path + '|' + JSON.stringify(body || {}); } catch { return path; }
+  let scope = '';
+  try { scope = sessionStorage.getItem('rmusana_token') || ''; } catch { scope = ''; }
+  try { return scope + '|' + path + '|' + JSON.stringify(body || {}); } catch { return scope + '|' + path; }
 }
 function isCacheable(path, body) {
   const action = (body && body.action) || '';

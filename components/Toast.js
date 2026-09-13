@@ -1,6 +1,8 @@
 /**
  * Toast notification system
  */
+import { escapeHtml } from '../js/escape.js';
+
 let root = null;
 
 export function initToasts() {
@@ -15,8 +17,8 @@ export function toast({ title, message, type = 'info', duration = 4000 }) {
   el.className = `toast ${type}`;
   el.innerHTML = `
     <div class="toast-content">
-      ${title ? `<div class="toast-title">${title}</div>` : ''}
-      ${message ? `<div class="toast-message">${message}</div>` : ''}
+      ${title ? `<div class="toast-title">${escapeHtml(title)}</div>` : ''}
+      ${message ? `<div class="toast-message">${escapeHtml(message)}</div>` : ''}
     </div>
     <button class="icon-btn" style="width:28px;height:28px" aria-label="Dismiss">
       <i data-lucide="x" style="width:14px;height:14px"></i>

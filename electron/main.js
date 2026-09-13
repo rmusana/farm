@@ -10,9 +10,10 @@ function createWindow(){
     webPreferences: { nodeIntegration: false, contextIsolation: true }
   });
   // Load local PWA (offline) or live GitHub Pages
-  const local = `file://${path.join(__dirname, '../index.html')}`;
-  // Prefer local for offline; fallback to live if not found
-  win.loadURL(local).catch(()=> win.loadURL('https://rmusana.github.io/farm/'));
+  // Note: service workers don't run on file:// — the wrapper still works
+  // offline because it loads the bundled files directly from disk.
+  win.loadFile(path.join(__dirname, '../index.html')).catch(()=> win.loadURL('https://rmusana.github.io/farm/'));
 }
 app.whenReady().then(createWindow);
+app.on('activate', ()=> { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 app.on('window-all-closed', ()=> { if(process.platform!=='darwin') app.quit(); });

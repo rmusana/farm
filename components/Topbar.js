@@ -236,7 +236,7 @@ root.querySelector('#user-menu')?.addEventListener('click', async () => {
   subscribe('alerts', (alerts) => {
     const dot = root.querySelector('#notif-dot');
     if (!dot) return;
-    const open = (alerts || []).filter((a) => (a.Status || a.status) === 'Open').length;
+    const open = (alerts || []).filter((a) => String(a.Status ?? a.status ?? '').toLowerCase() === 'open').length;
     dot.style.display = open > 0 ? 'block' : 'none';
   });
 }

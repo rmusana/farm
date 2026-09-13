@@ -322,7 +322,7 @@ export default {
     try {
       let data;
       let html = null;
-      if (window.LUK54_API_URL) {
+      if (window.RMUSANA_API_URL) {
         const res = await api.request('/reports', {
           body: {
             module: 'reports',
@@ -405,7 +405,7 @@ export default {
     const email = prompt('Send report to email address:');
     if (!email) return;
     try {
-      if (window.LUK54_API_URL) {
+      if (window.RMUSANA_API_URL) {
         await api.request('/reports', {
           body: {
             module: 'reports',

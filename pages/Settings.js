@@ -7,6 +7,7 @@ import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { setState, getState } from '../js/state.js';
 import { canApprove, getRole, hasRole, roleLabel } from '../js/auth.js';
+import { escapeHtml } from '../js/escape.js';
 import api from '../js/api.js';
 
 const SECTIONS = [
@@ -57,6 +58,34 @@ function localSettings(value) {
     }
   }
   localStorage.setItem('rmusana_settings', JSON.stringify(value));
+}
+
+function seedUsers() {
+  return [
+    { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
+    { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
+    { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', Active: true },
+    { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', Active: true }
+  ];
+}
+
+function localUsers(value) {
+  const KEY = 'rmusana_settings_users';
+  if (value === undefined) {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) {
+        const s = seedUsers();
+        localStorage.setItem(KEY, JSON.stringify(s));
+        return s;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : seedUsers();
+    } catch {
+      return seedUsers();
+    }
+  }
+  localStorage.setItem(KEY, JSON.stringify(value));
 }
 
 async function loadSettings() {
@@ -250,15 +279,10 @@ export default {
         const res = await api.request('/settings', { body: { module: 'settings', action: 'users' } });
         users = res.data || [];
       } else {
-        users = [
-          { UserID: 'usr_robert', Email: 'robert@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
-          { UserID: 'usr_moses', Email: 'moses@luk54.com', Name: 'Investment Partner', Role: 'Investor', Active: true },
-          { UserID: 'usr_joseph', Email: 'joseph@jalodreamfarm.com', Name: 'Operating Partner', Role: 'OperationsManager', Active: true },
-          { UserID: 'usr_admin', Email: 'admin@rmusana.com', Name: 'Administrator', Role: 'Administrator', Active: true }
-        ];
+        users = localUsers();
       }
     } catch (err) {
-      panel.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
+      panel.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${escapeHtml(err.message)}</p></div>`;
       return;
     }
 
@@ -278,7 +302,7 @@ export default {
     var meId = me && (me.UserID || me.userId || me.id);
     renderDataTable(panel.querySelector('#users-table'), {
       columns: [
-        { key: 'Avatar', label: '', accessor: function (r) {
+        { key: 'Avatar', label: '', rawHtml: true, accessor: function (r) {
           const role = r.Role || r.role || 'Viewer';
           const ini = role==='Investor'?'IP' : role==='OperationsManager'?'OP' : role==='Administrator'?'AD':'VW';
           const bg = role==='Investor'? 'var(--color-accent)' : role==='OperationsManager'? 'var(--color-earth)' : 'var(--color-text)';
@@ -292,8 +316,8 @@ export default {
           return raw; 
         } },
         { key: 'Email', label: 'Email', accessor: function (r) { return r.Email || r.email || '—'; } },
-        { key: 'Role', label: 'Role', accessor: function (r) { return `<span class="badge badge-accent">${roleLabel(r.Role || r.role)}</span>`; } },
-        { key: 'Active', label: 'Active', accessor: function (r) {
+        { key: 'Role', label: 'Role', rawHtml: true, accessor: function (r) { return `<span class="badge badge-accent">${escapeHtml(roleLabel(r.Role || r.role))}</span>`; } },
+        { key: 'Active', label: 'Active', rawHtml: true, accessor: function (r) {
           const on = (r.Active === true || r.Active === 'TRUE' || r.Active === 'Yes');
           return on ? '<span class="badge badge-positive">Active</span>' : '<span class="badge badge-neutral">Off</span>';
         } }
@@ -309,7 +333,11 @@ export default {
           var ok = await confirmDialog({ title: 'Delete user', message: 'Delete ' + (row.Name || row.Email) + '? This cannot be undone.', confirmLabel: 'Delete', danger: true });
           if (!ok) return;
           try {
-            await api.request('/settings', { body: { module: 'settings', action: 'userDelete', userId: id } });
+            if (window.RMUSANA_API_URL) {
+              await api.request('/settings', { body: { module: 'settings', action: 'userDelete', userId: id } });
+            } else {
+              localUsers(localUsers().filter((u) => String(u.UserID || u.userId || u.id) !== String(id)));
+            }
             toastSuccess('User deleted');
             this.renderPanel();
           } catch (err) { toastError(err.message || 'Delete failed'); }
@@ -342,6 +370,10 @@ export default {
       try {
         if (window.RMUSANA_API_URL) {
           await api.request('/settings', { body: { module: 'settings', action: 'userCreate', name: d.name, email: d.email, role: d.role, password: d.password } });
+        } else {
+          const users = localUsers();
+          users.unshift({ UserID: 'local_usr_' + Date.now(), Name: d.name, Email: d.email, Role: d.role, Active: true });
+          localUsers(users);
         }
         toastSuccess('User created');
         closeModal();
@@ -392,18 +424,27 @@ export default {
       const btn = document.getElementById('btn-save-user');
       if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
       try {
-        await api.request('/settings', {
-          body: {
-            module: 'settings',
-            action: 'userUpdate',
-            userId: id,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            active: !!activeChecked,
-            password: data.password || undefined
-          }
-        });
+        if (window.RMUSANA_API_URL) {
+          await api.request('/settings', {
+            body: {
+              module: 'settings',
+              action: 'userUpdate',
+              userId: id,
+              name: data.name,
+              email: data.email,
+              role: data.role,
+              active: !!activeChecked,
+              password: data.password || undefined
+            }
+          });
+        } else {
+          const users = localUsers().map((u) => {
+            const uid = u.UserID || u.userId || u.id;
+            if (String(uid) !== String(id)) return u;
+            return { ...u, Name: data.name, Email: data.email, Role: data.role, Active: !!activeChecked };
+          });
+          localUsers(users);
+        }
         toastSuccess('User updated');
         closeModal();
         this.renderPanel();

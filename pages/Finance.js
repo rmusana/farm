@@ -8,7 +8,7 @@ import { formatUGX, formatPercent, formatNumber } from '../components/KPI.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
 import { canApprove, canWrite, canWriteFinanceSection, financeSectionsForRole } from '../js/auth.js';
 import api from '../js/api.js';
-import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
+import { escapeHtml } from '../js/escape.js';
 
 function setBusy(btn, busy, labelBusy, labelIdle) {
   if (!btn) return;
@@ -719,10 +719,11 @@ export default {
           {
             key: 'Status',
             label: 'Status',
+            rawHtml: true,
             accessor: (r) => {
               const s = r.Status || r.status || 'Pending';
               const cls = s === 'Paid' ? 'positive' : 'caution';
-              return '<span class="badge badge-' + cls + '">' + s + '</span>';
+              return '<span class="badge badge-' + cls + '">' + escapeHtml(s) + '</span>';
             }
           },
           {

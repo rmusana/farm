@@ -10,6 +10,7 @@ import { canWrite, canWriteOperations } from '../js/auth.js';
 import api from '../js/api.js';
 import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
 import { renderLineChart } from '../components/Charts.js';
+import { escapeHtml } from '../js/escape.js';
 
 const TABS = [
   { id: 'daily', label: 'Daily Log' },
@@ -94,19 +95,23 @@ function localStore(key, value) {
 async function apiOrLocal(resource, action, payload) {
   payload = payload || {};
   if (window.RMUSANA_API_URL) {
-    return api.request('/operations', {
-      body: {
-        module: 'operations',
-        resource: resource,
-        action: action,
-        projectId: 'LUK54',
-        ...payload
-      }
-    });
+    try {
+      return await api.request('/operations', {
+        body: {
+          module: 'operations',
+          resource: resource,
+          action: action,
+          projectId: 'LUK54',
+          ...payload
+        }
+      });
+    } catch (e) {
+      // Fall back to offline storage when API is unreachable
+    }
   }
 
   // Offline localStorage path
-  if (action === 'list' || action === 'schedule' || action === 'inventory' || action === 'status') {
+  if (action === 'list' || action === 'schedule' || action === 'inventory' || action === 'status' || action === 'weeklyList') {
     if (resource === 'mortality') {
       const daily = localStore('daily');
       const out = daily
@@ -174,6 +179,9 @@ async function apiOrLocal(resource, action, payload) {
     if (resource === 'feed') {
       return { success: true, data: localStore('feed') };
     }
+    if (action === 'weeklyList') {
+      return { success: true, data: localStore('weeklyMix') };
+    }
     if (resource === 'sales' || resource === 'eggs') {
       return { success: true, data: localStore('sales') };
     }
@@ -215,8 +223,12 @@ async function apiOrLocal(resource, action, payload) {
       row.ClosingBirds = payload.closingBirds != null && payload.closingBirds !== ''
         ? Number(payload.closingBirds)
         : open - mort;
-      row.EggsTrays = Number(payload.eggsTrays) || (Number(payload.eggsCollected) || 0) / 30;
-      row.EggsCollected = Number(payload.eggsCollected) || (Number(payload.eggsTrays) || 0) * 30;
+      const traysRaw = payload.eggsTrays;
+      const collRaw = payload.eggsCollected;
+      const traysNum = traysRaw != null && traysRaw !== '' ? Number(traysRaw) : NaN;
+      const collNum = collRaw != null && collRaw !== '' ? Number(collRaw) : NaN;
+      row.EggsTrays = Number.isFinite(traysNum) ? traysNum : (Number.isFinite(collNum) ? collNum / 30 : 0);
+      row.EggsCollected = Number.isFinite(collNum) ? collNum : (Number.isFinite(traysNum) ? traysNum * 30 : 0);
       row.Breakages = Number(payload.breakages) || 0;
       row.EggsLost = Number(payload.eggsLost) || 0;
       row.FeedBrandKg = Number(payload.feedBrandKg) || 0;
@@ -234,12 +246,16 @@ async function apiOrLocal(resource, action, payload) {
     }
 
     if (resource === 'sales' || resource === 'eggs') {
-      const trays = Number(payload.quantityTrays) || 0;
-      const eggs = Number(payload.quantityEggs) || trays * TRAY_SIZE;
+      const traysIn = payload.quantityTrays;
+      const eggsIn = payload.quantityEggs;
+      const traysNum = traysIn != null && traysIn !== '' ? Number(traysIn) : NaN;
+      const eggsNum = eggsIn != null && eggsIn !== '' ? Number(eggsIn) : NaN;
+      const trays = Number.isFinite(traysNum) ? traysNum : (Number.isFinite(eggsNum) ? eggsNum / TRAY_SIZE : 0);
+      const eggs = Number.isFinite(eggsNum) ? eggsNum : trays * TRAY_SIZE;
       const price = Number(payload.unitPrice) || 0;
       row.Date = payload.date;
       row.Customer = payload.customer || '';
-      row.QuantityTrays = trays || eggs / TRAY_SIZE;
+      row.QuantityTrays = trays;
       row.QuantityEggs = eggs;
       row.UnitPrice = price;
       row.TotalRevenue = trays ? trays * price : eggs * price;
@@ -311,6 +327,29 @@ async function apiOrLocal(resource, action, payload) {
     list.unshift(row);
     localStore(storeKey, list);
     return { success: true, data: row };
+  }
+
+  if (action === 'weeklySave') {
+    const mixList = localStore('weeklyMix');
+    const names = ['brandKg','concentrateKg','limePowderKg','limestoneKg','soyaKg','sunflowerKg','brokenKg','maizeKg','othersKg'];
+    const total = names.reduce((s, n) => s + (Number(payload[n]) || 0), 0);
+    const row = Object.assign({}, payload, {
+      RecordID: 'local_' + Date.now(),
+      CreatedAt: new Date().toISOString(),
+      TotalKg: total
+    });
+    mixList.unshift(row);
+    localStore('weeklyMix', mixList);
+    return { success: true, data: row };
+  }
+  if (action === 'weeklyDelete') {
+    const mixList = localStore('weeklyMix');
+    const id = payload.id;
+    const next = mixList.filter(function (r) {
+      return String(r.RecordID || r.mixId || r.id) !== String(id);
+    });
+    localStore('weeklyMix', next);
+    return { success: true };
   }
 
   return { success: true, data: {} };
@@ -1456,10 +1495,11 @@ export default {
           {
             key: 'Status',
             label: 'Status',
+            rawHtml: true,
             accessor: function (r) {
               const s = r.Status || r.status || 'Pending';
               const cls = s === 'Completed' ? 'positive' : s === 'Recurring' ? 'info' : 'caution';
-              return '<span class="badge badge-' + cls + '">' + s + '</span>';
+              return '<span class="badge badge-' + cls + '">' + escapeHtml(s) + '</span>';
             }
           }
         ],

@@ -4,6 +4,7 @@
 import { field, serializeForm, validateRequired } from '../components/Form.js';
 import { openModal, closeModal, confirmDialog } from '../components/Modal.js';
 import { toastSuccess, toastError } from '../components/Toast.js';
+import { escapeHtml } from '../js/escape.js';
 import { canWrite } from '../js/auth.js';
 import api from '../js/api.js';
 
@@ -147,9 +148,9 @@ export default {
                 </div>
               `}
               <div style="min-width:0;flex:1">
-                <div class="u-font-semibold u-text-sm u-truncate">${name}</div>
-                <div class="u-text-xs u-text-muted">${d.ParentType || d.parentType || 'General'}</div>
-                <div class="u-text-xs u-text-muted">${d.UploadedAt ? new Date(d.UploadedAt).toLocaleDateString() : ''} · ${d.UploadedBy || d.uploadedBy || ''}</div>
+                <div class="u-font-semibold u-text-sm u-truncate">${escapeHtml(name)}</div>
+                <div class="u-text-xs u-text-muted">${escapeHtml(d.ParentType || d.parentType || 'General')}</div>
+                <div class="u-text-xs u-text-muted">${d.UploadedAt ? new Date(d.UploadedAt).toLocaleDateString() : ''} · ${escapeHtml(d.UploadedBy || d.uploadedBy || '')}</div>
               </div>
             </div>
           </div>`;
@@ -160,7 +161,7 @@ export default {
       });
       if (window.lucide) window.lucide.createIcons({ nodes: [el] });
     } catch (err) {
-      el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${err.message}</p></div>`;
+      el.innerHTML = `<div class="empty-state"><p class="empty-state-desc">${escapeHtml(err.message)}</p></div>`;
     }
   },
 
@@ -212,7 +213,12 @@ export default {
         } else {
           const list = localStore('list');
           const id = 'local_doc_' + Date.now();
-          const dataUrl = isImage(file.type) ? `data:${file.type};base64,${base64}` : null;
+          // Keep offline copies small: previews for images only, capped at ~500KB.
+          // Full file bytes always go to Drive once the API is configured.
+          const approxBytes = Math.floor(base64.length * 0.75);
+          const dataUrl = (isImage(file.type) && approxBytes <= 500000)
+            ? `data:${file.type};base64,${base64}`
+            : null;
           list.unshift({
             DocumentID: id,
             FileName: file.name,
@@ -222,9 +228,14 @@ export default {
             UploadedAt: new Date().toISOString(),
             UploadedBy: 'local',
             previewDataUrl: dataUrl,
-            dataUrl: dataUrl || `data:${file.type};base64,${base64}`
+            dataUrl: dataUrl
           });
-          localStore('list', list);
+          try {
+            localStore('list', list);
+          } catch (e) {
+            list.shift();
+            throw new Error('File too large to keep offline — connect the API to upload to Drive.');
+          }
         }
         toastSuccess('Document uploaded');
         closeModal();
@@ -253,28 +264,30 @@ export default {
     const mime = doc.MimeType || doc.mimeType || '';
     const name = doc.FileName || doc.fileName || 'Document';
     const url = doc.url || doc.previewDataUrl || doc.dataUrl || null;
+    // Only render http(s) links and image/pdf data URLs — blocks javascript: schemes
+    const safeUrl = url && /^(https?:|data:image\/|data:application\/pdf)/i.test(url) ? url : null;
 
     let body = `
       <p class="u-text-sm u-text-secondary" style="margin-bottom:var(--space-3)">
-        <span class="badge badge-neutral">${doc.ParentType || 'General'}</span>
+        <span class="badge badge-neutral">${escapeHtml(doc.ParentType || 'General')}</span>
         ${doc.UploadedAt ? ' · ' + new Date(doc.UploadedAt).toLocaleString() : ''}
-        ${doc.UploadedBy ? ' · ' + doc.UploadedBy : ''}
+        ${doc.UploadedBy ? ' · ' + escapeHtml(doc.UploadedBy) : ''}
       </p>`;
 
-    if (url && isImage(mime)) {
-      body += `<img src="${url}" alt="${name}" style="max-width:100%;border-radius:var(--radius-md);margin-bottom:var(--space-3)" />`;
-    } else if (url && isPdf(mime)) {
-      body += `<iframe src="${url}" style="width:100%;height:360px;border:1px solid var(--color-border);border-radius:var(--radius-md)"></iframe>`;
-    } else if (url) {
-      body += `<p class="u-text-sm"><a href="${url}" target="_blank" rel="noopener">Open / download file</a></p>`;
+    if (safeUrl && isImage(mime)) {
+      body += `<img src="${safeUrl}" alt="${escapeHtml(name)}" style="max-width:100%;border-radius:var(--radius-md);margin-bottom:var(--space-3)" />`;
+    } else if (safeUrl && isPdf(mime)) {
+      body += `<iframe src="${safeUrl}" style="width:100%;height:360px;border:1px solid var(--color-border);border-radius:var(--radius-md)"></iframe>`;
+    } else if (safeUrl) {
+      body += `<p class="u-text-sm"><a href="${safeUrl}" target="_blank" rel="noopener">Open / download file</a></p>`;
     } else if (doc.DriveFileID) {
-      body += `<p class="u-text-sm"><a href="https://drive.google.com/file/d/${doc.DriveFileID}/view" target="_blank" rel="noopener">Open file</a></p>`;
+      body += `<p class="u-text-sm"><a href="https://drive.google.com/file/d/${escapeHtml(doc.DriveFileID)}/view" target="_blank" rel="noopener">Open file</a></p>`;
     } else {
       body += `<p class="u-text-sm u-text-muted">Preview not available offline for this file type. Re-upload after connecting Apps Script + Drive.</p>`;
     }
 
     const footer = `
-      ${url ? `<a class="btn btn-secondary" href="${url}" download="${name}" target="_blank">Download</a>` : ''}
+      ${safeUrl ? `<a class="btn btn-secondary" href="${safeUrl}" download="${escapeHtml(name)}" target="_blank">Download</a>` : ''}
       ${canWrite('operations') ? `<button class="btn btn-danger" id="btn-del-doc">Delete</button>` : ''}
       <button class="btn btn-primary" data-modal-close>Close</button>
     `;

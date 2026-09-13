@@ -8,6 +8,9 @@
  * Then paste the Web App URL into window.RMUSANA_API_URL (js/config.js)
  */
 
+// NOTE: IDs below are deployment defaults only. Prefer setting SPREADSHEET_ID /
+// DRIVE_ROOT_FOLDER_ID in Project Settings > Script Properties — properties take
+// precedence when present. IDs alone grant no access (sharing settings apply).
 var SPREADSHEET_ID = (function(){ try{ var v=PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'); return v || '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME'; }catch(e){ return '1nWQTo151TCSdYtflQygdfyJ62V-OrBEm-Obm8tkOkME'; }})();
 var DRIVE_ROOT_FOLDER_ID = (function(){ try{ var v=PropertiesService.getScriptProperties().getProperty('DRIVE_ROOT_FOLDER_ID'); return v || '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6'; }catch(e){ return '1zyYdaZtBIJ3OX-8GK0cUJrwT2G6Sksb6'; }})();
 

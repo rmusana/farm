@@ -7,7 +7,7 @@ import { navigate } from '../js/router.js';
 import { getRole, canWrite, canApprove } from '../js/auth.js';
 import { getState } from '../js/state.js';
 import api from '../js/api.js';
-import { formatDate, formatDateTime, todayEAT } from '../js/datetime.js';
+import { escapeHtml } from '../js/escape.js';
 import { toastError } from '../components/Toast.js';
 
 function emptySummary() {
@@ -116,7 +116,7 @@ export default {
       if(window.RMUSANA_API_URL){
         const [sumRes,insRes,actRes,alertRes]=await Promise.all([api.dashboard.summary(), api.dashboard.insights(), api.dashboard.activity().catch(()=>({data:[]})), api.alerts.list().catch(()=>({data:[]}))]);
         if(sumRes.data) summary={...summary, ...sumRes.data};
-        insights=insRes.data||[]; activity=actRes.data||[]; alerts=(alertRes.data||[]).filter(a=>a.status==='Open'||a.Status==='Open').slice(0,5);
+        insights=insRes.data||[]; activity=actRes.data||[]; alerts=(alertRes.data||[]).filter(a=>{const s=String(a.status??a.Status??'').toLowerCase();return s==='open'||s==='acknowledged';}).slice(0,5);
       } else insights=[{severity:'info', text:'No operational data yet.'}];
     } catch(err){ console.warn(err); if(err.code!=='NO_API') toastError(err.message||'Could not load dashboard'); }
     this.renderHealth(root.querySelector('#dash-health'), summary);
@@ -210,7 +210,7 @@ export default {
     if(!alerts.length){ el.innerHTML=`<div class="empty-state" style="padding:14px"><i data-lucide="bell-off" class="empty-state-icon" style="width:28px;height:28px"></i><p class="empty-state-desc">${summary.criticalAlerts>0?summary.criticalAlerts+' critical': 'No open alerts'}</p></div>`; return; }
     el.innerHTML=alerts.map(a=>{
       const pri=(a.priority||a.Priority||'Medium').toLowerCase(); const badge=pri==='critical'?'critical':pri==='high'?'caution':'neutral';
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--color-border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span class="badge badge-${badge}">${a.priority||a.Priority||'Medium'}</span><span class="u-text-sm u-font-medium u-truncate">${a.title||a.Title||'Alert'}</span></div><div class="u-text-xs u-text-muted">${a.reason||a.Reason||a.suggestedAction||a.SuggestedAction||''}</div></div>`;
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--color-border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span class="badge badge-${badge}">${escapeHtml(a.priority||a.Priority||'Medium')}</span><span class="u-text-sm u-font-medium u-truncate">${escapeHtml(a.title||a.Title||'Alert')}</span></div><div class="u-text-xs u-text-muted">${escapeHtml(a.reason||a.Reason||a.suggestedAction||a.SuggestedAction||'')}</div></div>`;
     }).join('');
   },
   renderActions(el){

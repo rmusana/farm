@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rmusana-v1.2.0';
+const CACHE_NAME = 'rmusana-v1.2.1';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,23 @@ const ASSETS = [
   './js/auth.js',
   './js/state.js',
   './js/datetime.js',
+  './js/escape.js',
+  './components/Form.js',
+  './components/Topbar.js',
+  './components/KPI.js',
+  './components/Toast.js',
+  './components/Modal.js',
+  './components/Charts.js',
+  './components/DataTable.js',
+  './components/Sidebar.js',
+  './pages/Dashboard.js',
+  './pages/Operations.js',
+  './pages/Finance.js',
+  './pages/Reports.js',
+  './pages/Alerts.js',
+  './pages/Documents.js',
+  './pages/Settings.js',
+  './pages/Login.js',
   './manifest.json',
   './assets/icons/favicon.svg',
   './assets/icons/icon-192.png',
@@ -37,7 +54,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.hostname.includes('google.com') || url.hostname.includes('googleapis.com') || url.hostname.includes('script.google')) {
+  // Never cache third-party backends, CDNs, fonts, or auth endpoints
+  if (url.hostname === 'script.google.com'
+    || url.hostname.endsWith('.googleapis.com')
+    || url.hostname.endsWith('.gstatic.com')
+    || url.hostname === 'accounts.google.com'
+    || url.hostname === 'cdn.jsdelivr.net'
+    || url.hostname === 'unpkg.com') {
     return;
   }
   // stale-while-revalidate with 3s network timeout

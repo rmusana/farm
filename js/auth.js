@@ -2,7 +2,7 @@
  * Authentication – session, roles, Google OAuth, credential login
  */
 import { setState, getState } from './state.js';
-import api from './api.js';
+import api, { clearApiCache } from './api.js';
 
 const PUBLIC_ROUTES = new Set(['login']);
 
@@ -151,12 +151,14 @@ function persistSession(user, token) {
   const normalized = { ...user, role: normalizeRole(user.role || user.Role) };
   sessionStorage.setItem('rmusana_token', token);
   sessionStorage.setItem('rmusana_user', JSON.stringify(normalized));
+  try { clearApiCache(); } catch {}
   setState({ user: normalized, role: normalized.role });
 }
 
 function clearSession() {
   sessionStorage.removeItem('rmusana_token');
   sessionStorage.removeItem('rmusana_user');
+  try { clearApiCache(); } catch {}
   setState({ user: null, role: null });
 }
 

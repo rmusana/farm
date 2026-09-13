@@ -1,6 +1,8 @@
 /**
  * Modal component
  */
+import { escapeHtml } from '../js/escape.js';
+
 let activeModal = null;
 
 export function openModal({ title, content, footer, size = 'md', onClose }) {
@@ -18,7 +20,7 @@ export function openModal({ title, content, footer, size = 'md', onClose }) {
   backdrop.innerHTML = `
     <div class="modal ${size === 'lg' ? 'modal-lg' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
-        <h2 id="modal-title">${title || ''}</h2>
+        <h2 id="modal-title">${escapeHtml(title || '')}</h2>
         <button class="icon-btn" data-modal-close aria-label="Close">
           <i data-lucide="x"></i>
         </button>
@@ -89,11 +91,11 @@ export function confirmDialog({ title, message, confirmLabel = 'Confirm', danger
   return new Promise((resolve) => {
     const footer = `
       <button class="btn btn-secondary" data-cancel>Cancel</button>
-      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-confirm>${confirmLabel}</button>
+      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-confirm>${escapeHtml(confirmLabel)}</button>
     `;
     const backdrop = openModal({
       title,
-      content: `<p style="color:var(--color-text-secondary)">${message}</p>`,
+      content: `<p style="color:var(--color-text-secondary)">${escapeHtml(message)}</p>`,
       footer,
       onClose: () => resolve(false)
     });
