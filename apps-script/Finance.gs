@@ -316,8 +316,9 @@ var Finance = {
     var sheet = getSheet('RevenueAllocation');
     this.ensureHeaders(sheet, ['AllocationID', 'ProjectID', 'Month', 'GrossSalesRevenue', 'FeedAllocation50pct', 'GrossProfit', 'OperatingPartner25pct', 'NetProfitToInvestor', 'Status', 'PaidDate']);
 
-    // Upsert by month
-    var existing = this.rows('RevenueAllocation', pid).filter(function (r) { return r.Month === body.month; })[0];
+    // Upsert by month (Month column may come back as a Date object —
+    // Sheets coerces 'YYYY-MM' — so compare calendar keys, not raw values)
+    var existing = this.rows('RevenueAllocation', pid).filter(function (r) { return Utils.dateKey(r.Month).slice(0, 7) === body.month; })[0];
     if (existing) {
       return { success: true, data: existing, message: 'Allocation already finalized for month' };
     }

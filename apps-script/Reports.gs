@@ -218,7 +218,7 @@ var Reports = {
 
   profitReport: function (pid, period) {
     var dists = this.rows('ProfitDistributions', pid);
-    if (period) dists = dists.filter(function (r) { return String(r.Month).indexOf(period) === 0; });
+    if (period) dists = dists.filter(function (r) { return Utils.dateKey(r.Month).indexOf(period) === 0; });
     return {
       title: 'Profit Distribution Report',
       period: period,
